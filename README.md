@@ -2,7 +2,7 @@
 
 An interactive version of `Housing_CT_Prefab_City_Models_and_Charts.xlsx`, the Housing CT Prefab Modular team's financial model. It covers one 2-unit owner-plus-rental building in Hartford, New Haven and Waterbury.
 
-**Live page:** https://eytanjda123.github.io/HousingCTModularModal/
+**Live page:** https://eytanjda123.github.io/HousingCTModularModel/
 
 - Every workbook input has a slider, tagged Sourced, Placeholder or Team choice.
 - An input-to-output map traces each input through the calculations to price, subsidy and the remaining gap.
