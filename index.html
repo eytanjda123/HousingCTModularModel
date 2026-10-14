@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Prefab Gap Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a working sheet. Sticky control rail on the left (inputs styled like the workbook: blue on yellow),
+   main column reads top to bottom: headline results, input-to-output map, three-city comparison, sensitivity. */
+:root{
+  --paper:#EEF1EF; --sheet:#FBFCFB; --ink:#18232B; --ink-2:#4A5862; --ink-3:#7D8A92; --rule:#D3DAD7; --rule-2:#E3E8E6;
+  --input-bg:#FFF3B0; --input-fg:#1D4ED8; --link-fg:#1E7A46;
+  --accent:#1D4ED8; --accent-soft:#DCE6FF;
+  --good:#1E7A46; --good-bg:#DDF1E4; --bad:#B42318; --bad-bg:#FBE1DE;
+  --c-hfd:#3359A8; --c-nh:#0D8577; --c-wtb:#C06A1E;
+  --s-buyer:#5C6F7B; --s-assist:#8FA3B0; --s-doh:#3359A8; --s-hdf:#5B83C9; --s-ahp:#0D8577; --s-htcc:#5DB3A6; --s-gap:#B42318;
+  --tag-src:#1E7A46; --tag-ph:#A15C00; --tag-ch:#3359A8; --tag-ny:#6B7780;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101519; --sheet:#171E23; --ink:#E5EBEE; --ink-2:#AAB6BD; --ink-3:#7C8990; --rule:#2C363D; --rule-2:#222B31;
+  --input-bg:#3A3413; --input-fg:#9DBBFF; --link-fg:#6FD39A; --accent:#8FB0FF; --accent-soft:#1E2B4A;
+  --good:#6FD39A; --good-bg:#16352A; --bad:#FF8A7E; --bad-bg:#40201D;
+  --c-hfd:#7F9FE6; --c-nh:#4CC3B2; --c-wtb:#E7A060;
+  --s-buyer:#7E919C; --s-assist:#56656E; --s-doh:#5C80D0; --s-hdf:#3D5C99; --s-ahp:#3AA898; --s-htcc:#2A6E66; --s-gap:#E5574A;
+  --tag-src:#6FD39A; --tag-ph:#F0B35A; --tag-ch:#8FB0FF; --tag-ny:#97A3AA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101519; --sheet:#171E23; --ink:#E5EBEE; --ink-2:#AAB6BD; --ink-3:#7C8990; --rule:#2C363D; --rule-2:#222B31;
+  --input-bg:#3A3413; --input-fg:#9DBBFF; --link-fg:#6FD39A; --accent:#8FB0FF; --accent-soft:#1E2B4A;
+  --good:#6FD39A; --good-bg:#16352A; --bad:#FF8A7E; --bad-bg:#40201D;
+  --c-hfd:#7F9FE6; --c-nh:#4CC3B2; --c-wtb:#E7A060;
+  --s-buyer:#7E919C; --s-assist:#56656E; --s-doh:#5C80D0; --s-hdf:#3D5C99; --s-ahp:#3AA898; --s-htcc:#2A6E66; --s-gap:#E5574A;
+  --tag-src:#6FD39A; --tag-ph:#F0B35A; --tag-ch:#8FB0FF; --tag-ny:#97A3AA; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--paper);color:var(--ink)}
+body{font-family:var(--f-body);font-size:14px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+h1,h2,h3{font-family:var(--f-display);font-stretch:82%;text-wrap:balance;margin:0;letter-spacing:-.005em}
+h1{font-size:1.65rem;font-weight:800}
+h2{font-size:1.3rem;font-weight:750}
+h3{font-size:1rem;font-weight:700}
+.eyebrow{font-family:var(--f-display);font-stretch:80%;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+p{margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--rule);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px));}
+.top-in{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:12px;max-width:1500px;margin:0 auto}
+.brand{display:flex;flex-direction:column;gap:0;margin-right:auto;min-width:0}
+.brand small{color:var(--ink-2);font-size:.8rem}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);padding:2px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 11px;border-radius:6px;cursor:pointer;font-weight:500;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.btn{border:1px solid var(--rule);background:var(--sheet);padding:6px 11px;border-radius:8px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--sheet)}
+.basenote{font-size:.78rem;color:var(--ink-3)}
+
+/* Shell */
+.shell{display:grid;grid-template-columns:350px minmax(0,1fr);gap:20px;max-width:1500px;margin:18px auto 0}
+@media (max-width:980px){.shell{grid-template-columns:minmax(0,1fr)}}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;max-height:calc(100vh - 92px);overflow:auto;background:var(--sheet);border:1px solid var(--rule);border-radius:10px}
+@media (max-width:980px){.rail{position:static;max-height:none}}
+.rail-head{padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;position:sticky;top:0;background:var(--sheet);z-index:2}
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+main{display:flex;flex-direction:column;gap:20px;min-width:0}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px;margin-bottom:12px}
+.panel-head p{color:var(--ink-2);max-width:68ch;font-size:.9rem}
+
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:1px 6px;border-radius:4px;border:1px solid currentColor;line-height:1.5;white-space:nowrap}
+.tag.src{color:var(--tag-src)} .tag.ph{color:var(--tag-ph)} .tag.ch{color:var(--tag-ch)} .tag.ny{color:var(--tag-ny);border-style:dashed}
+
+/* Controls */
+details.grp{border-bottom:1px solid var(--rule-2)}
+details.grp>summary{list-style:none;cursor:pointer;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.grp>summary::-webkit-details-marker{display:none}
+details.grp>summary::after{content:"+";font-family:var(--f-mono);color:var(--ink-3)}
+details.grp[open]>summary::after{content:"–"}
+.grp-body{display:flex;flex-direction:column;gap:12px;padding:2px 14px 14px}
+.ctl{display:flex;flex-direction:column;gap:4px;border-radius:6px;padding:6px 8px;margin:0 -8px;transition:background .15s}
+.ctl.hot{background:var(--accent-soft)}
+.ctl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl-top label{font-weight:500;font-size:.86rem;min-width:0}
+.ctl-val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;background:var(--input-bg);color:var(--input-fg);padding:0 6px;border-radius:3px;font-size:.85rem;white-space:nowrap;font-weight:500}
+.ctl-val.changed{box-shadow:0 0 0 1.5px var(--input-fg)}
+.ctl-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.76rem;color:var(--ink-3)}
+.ctl-meta .scope{font-family:var(--f-mono);font-size:.7rem}
+.ctl input[type=range]{width:100%;accent-color:var(--input-fg);margin:2px 0}
+.ctl select{background:var(--input-bg);color:var(--input-fg);border:1px solid var(--rule);border-radius:4px;padding:3px 6px;font-family:var(--f-mono);font-size:.85rem}
+.ctl.ny{border:1px dashed var(--rule);margin:0;padding:8px}
+.ctl.ny.off input[type=range]{opacity:.35}
+.ctl.ny.off .ctl-val{background:transparent;color:var(--ink-3);text-decoration:line-through}
+.switch{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;color:var(--ink-2)}
+.switch input{accent-color:var(--input-fg)}
+.note{font-size:.76rem;color:var(--ink-3);line-height:1.4}
+.rail-empty{padding:14px;color:var(--ink-2);font-size:.85rem}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--rule);border-radius:10px;background:var(--sheet);overflow:hidden}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{padding:14px 16px;border-right:1px solid var(--rule-2);display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi:last-child{border-right:0}
+.kpi .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:1.55rem;font-weight:600;line-height:1.15}
+.kpi .s{font-size:.78rem;color:var(--ink-2)}
+.chip{display:inline-flex;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:.74rem;padding:0 6px;border-radius:4px;font-weight:500;white-space:nowrap;align-self:flex-start}
+.chip.good{background:var(--good-bg);color:var(--good)} .chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.neu{background:var(--rule-2);color:var(--ink-2)}
+.chip.zero{color:var(--ink-3);background:transparent;padding-left:0}
+
+/* Explain stepper */
+.stepper{display:flex;flex-direction:column;gap:12px;border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.steps{display:flex;flex-wrap:wrap;gap:6px}
+.steps button{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:3px 10px;font-size:.8rem;cursor:pointer;color:var(--ink-2)}
+.steps button[aria-current="step"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.step-text{font-size:1rem;max-width:72ch}
+.step-text b{font-family:var(--f-mono);font-weight:600}
+.step-nav{display:flex;gap:8px}
+
+/* Flow map */
+.flowwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.flowscroll{overflow-x:auto;border:1px solid var(--rule-2);border-radius:8px;background:var(--paper)}
+#flow{display:block;min-width:820px;width:100%;height:auto}
+#flow .edge{fill:none;stroke:var(--rule);stroke-width:1.3;transition:stroke .15s,opacity .15s}
+#flow .node rect{fill:var(--sheet);stroke:var(--rule);stroke-width:1;transition:stroke .15s,opacity .15s}
+#flow .node.input rect{fill:var(--input-bg);stroke:transparent}
+#flow .node.output rect{stroke:var(--ink);stroke-width:1.4}
+#flow .node.ny rect{fill:transparent;stroke:var(--tag-ny);stroke-dasharray:4 3}
+#flow .node.ny.on rect{fill:var(--input-bg)}
+#flow .node{cursor:pointer}
+#flow .node .lbl{font-family:var(--f-body);font-size:11px;fill:var(--ink-2)}
+#flow .node.input .lbl{fill:var(--input-fg)}
+#flow .node .val{font-family:var(--f-mono);font-size:13.5px;font-weight:600;fill:var(--ink)}
+#flow .node.input .val{fill:var(--input-fg);font-weight:500;font-size:12px}
+#flow .node.ny .val,#flow .node.ny .lbl{fill:var(--tag-ny)}
+#flow .node.ny.on .val,#flow .node.ny.on .lbl{fill:var(--input-fg)}
+#flow .dlt{font-family:var(--f-mono);font-size:10.5px;font-weight:600}
+#flow .dlt.good{fill:var(--good)} #flow .dlt.bad{fill:var(--bad)} #flow .dlt.neu{fill:var(--ink-3)}
+#flow .conf{font-family:var(--f-mono);font-size:9px;font-weight:600}
+#flow .colhead{font-family:var(--f-display);font-stretch:80%;font-size:11px;letter-spacing:.09em;text-transform:uppercase;fill:var(--ink-3);font-weight:650}
+#flow.tracing .edge{opacity:.18}
+#flow.tracing .node{opacity:.3}
+#flow.tracing .edge.on{opacity:1;stroke:var(--accent);stroke-width:2}
+#flow.tracing .node.on{opacity:1}
+#flow.tracing .node.on rect{stroke:var(--accent);stroke-width:1.8}
+#flow .node.sel rect{stroke:var(--accent);stroke-width:2.4}
+@keyframes pulse{0%{stroke-width:4}100%{stroke-width:1.4}}
+#flow .node.pulse rect{animation:pulse .6s ease-out}
+@media (prefers-reduced-motion:reduce){#flow .node.pulse rect{animation:none}.ctl{transition:none}}
+.flowkey{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--ink-2);margin-top:10px;align-items:center}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px;border:1px solid var(--rule)}
+.inspector{border-top:1px solid var(--rule-2);padding-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 28px;min-width:0}
+.inspector>div{display:flex;flex-direction:column;gap:10px;min-width:0}
+.inspector .how{font-size:.88rem;color:var(--ink-2)}
+.inspector .formula{font-family:var(--f-mono);font-size:.76rem;background:var(--paper);border:1px solid var(--rule-2);border-radius:6px;padding:8px;white-space:pre-wrap;color:var(--ink)}
+.cityvals{display:flex;flex-direction:column;gap:4px}
+.cityvals div{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:.86rem}
+.cityvals .num{font-weight:600}
+.linklist{display:flex;flex-wrap:wrap;gap:4px}
+.linklist button{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;font-size:.74rem;padding:1px 6px;cursor:pointer;color:var(--ink-2)}
+
+/* Compare */
+.city-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+@media (max-width:700px){.city-facts{grid-template-columns:minmax(0,1fr)}}
+.cf{border-top:3px solid var(--c);padding-top:8px;display:flex;flex-direction:column;gap:2px;font-size:.8rem;color:var(--ink-2)}
+.cf b{font-family:var(--f-display);font-stretch:85%;font-size:1rem;color:var(--ink)}
+.cf .role{font-style:italic}
+.chartbox{overflow-x:auto}
+#stack{display:block;width:100%;min-width:640px;height:auto}
+svg text{font-family:var(--f-body)}
+.stackkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78rem;color:var(--ink-2);margin:8px 0 4px}
+.tblwrap{overflow-x:auto;margin-top:16px}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:620px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule-2);text-align:right;vertical-align:baseline}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:.9rem;border-bottom:1px solid var(--rule)}
+td .num{font-weight:500}
+td .chip{margin-left:6px}
+tr.key td{font-weight:600}
+tr.key td:first-child{font-weight:600}
+tr:hover td{background:var(--paper)}
+
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:1180px){.two{grid-template-columns:minmax(0,1fr)}}
+.picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.84rem;color:var(--ink-2)}
+.picker select{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:4px 6px;max-width:100%}
+#sweep,#tornado{display:block;width:100%;height:auto}
+.foot{max-width:1500px;margin:20px auto 0;color:var(--ink-3);font-size:.78rem;display:flex;flex-direction:column;gap:4px}
+.explore-only{}
+[hidden]{display:none!important}
+body.explain .explore-only{display:none!important}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>Prefab Gap Explorer</h1>
+      <small>Housing CT · Prefab Modular team · one 2-unit owner-plus-rental building, three cities</small>
+    </div>
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-explain" aria-pressed="false">Explain</button>
+      <button id="m-explore" aria-pressed="true">Explore</button>
+    </div>
+    <div class="seg" role="group" aria-label="Focus city" id="citySeg"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="pin" title="Make the current settings the comparison point for every change shown">Pin as baseline</button>
+      <button class="btn" id="reset" title="Return every input to the workbook values">Reset to workbook</button>
+      <span class="basenote" id="basenote">Baseline: workbook (Oct 8)</span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" aria-label="Inputs">
+    <div class="rail-head">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>Inputs</h3><span class="note" id="railnote">Every input in the workbook</span></div>
+      <div class="legend">
+        <span class="tag src">Sourced</span><span class="tag ph">Placeholder</span><span class="tag ch">Team choice</span><span class="tag ny">Not yet modeled</span>
+      </div>
+      <div class="note">Yellow values are inputs, as in the workbook. <span class="mono">ALL</span> = shared by every city. <span class="mono">CITY</span> = applies to the focus city only.</div>
+    </div>
+    <div id="controls"></div>
+  </aside>
+
+  <main>
+    <section class="stepper" id="stepper" hidden aria-live="polite">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="eyebrow" id="stepEyebrow">How the model works</span>
+        <div class="step-nav"><button class="btn" id="prevStep">Back</button><button class="btn primary" id="nextStep">Next step</button></div>
+      </div>
+      <div class="steps" id="stepBtns"></div>
+      <h2 id="stepTitle"></h2>
+      <p class="step-text" id="stepText"></p>
+    </section>
+
+    <section class="kpis" id="kpis" aria-label="Headline results for the focus city"></section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Input-to-output map · <span id="flowCity"></span></span>
+          <h2>How each input reaches the gap</h2>
+        </div>
+        <p>Hover a box to trace what it feeds and what feeds it. Moving a slider lights up everything downstream. Small figures under each value show the change from the baseline. Click any box to see how it is calculated.</p>
+      </div>
+      <div class="flowwrap">
+        <div>
+          <div class="flowscroll"><svg id="flow" role="img" aria-label="Diagram of model inputs flowing through calculations to outputs"></svg></div>
+          <div class="flowkey">
+            <span><span class="sw" style="background:var(--input-bg);border-color:transparent"></span>Input</span>
+            <span><span class="sw" style="background:var(--sheet)"></span>Calculation</span>
+            <span><span class="sw" style="background:var(--sheet);border:1.5px solid var(--ink)"></span>Result</span>
+            <span><span class="sw" style="border:1px dashed var(--tag-ny);background:transparent"></span>Not yet modeled (off until switched on)</span>
+            <span class="mono" style="color:var(--tag-ph)">PH</span><span>= placeholder value</span>
+          </div>
+        </div>
+        <aside class="inspector" id="inspector" aria-live="polite"></aside>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div><span class="eyebrow">Inter-city comparison</span><h2>Same building, three cities</h2></div>
+        <p>Each bar is what the building must sell for to cover its cost and margin (required proceeds), and who pays for it. The buyer pays what their income and the appraisal allow. Illustrative subsidies fill the rest in order, and red is what is still unfunded. Ticks mark the baseline.</p>
+      </div>
+      <div class="city-facts" id="cityFacts"></div>
+      <div class="stackkey" id="stackKey"></div>
+      <div class="chartbox"><svg id="stack" role="img" aria-label="Capital stack by city"></svg></div>
+      <div class="tblwrap"><table id="cmp"></table></div>
+    </section>
+
+    <section class="two explore-only">
+      <div class="panel">
+        <div class="panel-head" style="margin-bottom:8px"><div><span class="eyebrow">Sensitivity sweep</span><h2>Move one input across its range</h2></div></div>
+        <div class="picker">
+          <label for="sweepIn">Input</label><select id="sweepIn"></select>
+          <label for="sweepOut">Result</label><select id="sweepOut"></select>
+        </div>
+        <p class="note" style="margin:6px 0 8px">Follows the last slider you touched. Each line holds every other input at its current setting. A city-only input is set to the same value in all three cities, so the lines stay comparable. Dots show each city's current value.</p>
+        <svg id="sweep" role="img" aria-label="Sensitivity sweep chart"></svg>
+      </div>
+      <div class="panel">
+        <div class="panel-head" style="margin-bottom:8px"><div><span class="eyebrow">What moves the remaining gap</span><h2>One change at a time, from current settings</h2></div></div>
+        <p class="note" style="margin-bottom:8px">The same scenarios as section 10 of each city tab. Bars show the change in remaining gap after the illustrative stack. Left (green) means a smaller gap.</p>
+        <svg id="tornado" role="img" aria-label="Scenario impact chart"></svg>
+      </div>
+    </section>
+
+    <section class="panel explore-only">
+      <div class="panel-head"><div><span class="eyebrow">Research slots</span><h2>Inputs not yet in the workbook</h2></div>
+      <p>These are switched off, so every number above matches the workbook until you turn one on. Each is wired into the math where we expect it to land. The starting values are rough guesses meant for testing, not findings.</p></div>
+      <div class="tblwrap" style="margin-top:0"><table id="nytable"></table></div>
+    </section>
+
+    <div class="foot">
+      <span>Logic ported from Housing_CT_Prefab_City_Models_and_Charts.xlsx (built Oct 8, 2026 from the course's simplified Housing Feasibility calculator). Sources: HUD FY2026 income limits; Redfin, Aug 2026; CT Parcel and CAMA data, 2023–26; ACS 2024 1-year; CT DOH Developer Subsidy Initiative; HDF Homeownership Construction Program; CHFA Time To Own; FHLBank Boston AHP 2026; CHFA HTCC. Modular costs: F26 Housing CT Model Workshop v2.2.</span>
+      <span>The funding stack uses caps and one precedent, not awards. Stacking rules are unconfirmed.</span>
+    </div>
+  </main>
+</div>
+
+<script id="model">
+/* ===================== MODEL (mirrors each city tab, rows 53–138) ===================== */
+const BR=["Studio","1BR","2BR","3BR","4BR"];
+const CITIES=["Hartford","New Haven","Waterbury"];
+const CITY_COLOR={"Hartford":"--c-hfd","New Haven":"--c-nh","Waterbury":"--c-wtb"};
+const DEFAULTS={
+  shared:{
+    units:2, ownerBR:"3BR", rentBR:"2BR", ownerAMI:0.6, hhSize:4, rentAMI:0.6, capMkt:true, system:"Modular",
+    rate:0.065, term:30, dp:0.035, mip:0.0055, rentCredit:0.75, lenderCap:0.40, ownerCap:0.30,
+    ins:900, util:55, maint:0.12, vac:0.07, rentStd:0.30,
+    stick:285, grossup:1.12, soft:0.20, cont:0.10, fin:0.05, margin:0.10,
+    sqft:[480,620,880,1150,1400], brFactor:[0.7,0.75,0.9,1.04,1.16], ua:[90,110,140,170,200],
+    hhFactor:[0.7,0.8,0.9,1,1.08,1.16],
+    factory:[181.32,172.88,166.98], field:[79.53,76.82,72.30], transport:[18553,23613,28673],
+    tto:25000, otherAssist:0, doh:230000, hdf:150000, ahp:100000, htcc:500000, htccHomes:10,
+    ny:{ site:{on:false,val:20000}, waiver:{on:false,val:8000}, abate:{on:false,val:0.5}, apprUp:{on:false,val:0.10}, vol:{on:false,val:0.08} }
+  },
+  cities:{
+    "Hartford":{ami50:64600, hudMFI:129200, mkt:[1200,1300,1550,1800,2080], med:[320000,360000,361700], assess:0.7, mill:68.95, land:{on:false,val:10000}},
+    "New Haven":{ami50:62250, hudMFI:123200, mkt:[1532,1595,1750,2100,2970], med:[300000,390000,500000], assess:0.7, mill:39.75, land:{on:false,val:10000}},
+    "Waterbury":{ami50:62250, hudMFI:114000, mkt:[1100,1195,1525,1800,2082], med:[308750,330000,398750], assess:0.7, mill:60.21, land:{on:false,val:10000}}
+  }
+};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const bucketOf=u=>u<=2?0:(u===3?1:2);
+const BUCKET_LABEL=["2-unit","3-unit","4–6 unit"];
+function pmtFactor(r,n){ if(r===0) return 1/n; return r/(1-Math.pow(1+r,-n)); }
+
+function compute(S,city){
+  const s=S.shared, c=S.cities[city], ny=s.ny, R={};
+  const b=bucketOf(s.units), rented=s.units-1;
+  const oi=BR.indexOf(s.ownerBR), ri=BR.indexOf(s.rentBR);
+  R.rented=rented; R.bucket=b;
+  // program
+  R.ownerSF=s.sqft[oi]; R.rentSF=s.sqft[ri];
+  R.gsf=(R.ownerSF+rented*R.rentSF)*s.grossup;
+  R.apprBase=c.med[b];
+  R.appr=R.apprBase*(1+(ny.apprUp.on?ny.apprUp.val:0));
+  // rent
+  R.ami100=2*c.ami50;
+  R.rentGross=R.ami100*s.brFactor[ri]*s.rentAMI*s.rentStd/12;
+  R.uaV=s.ua[ri];
+  R.rentNet=R.rentGross-R.uaV;
+  R.market=c.mkt[ri];
+  R.rent= s.rentAMI===0 ? R.market : (s.capMkt ? Math.min(R.rentNet,R.market) : R.rentNet);
+  R.rentBinding = s.rentAMI===0 ? "Market rent" : (s.capMkt && R.market<R.rentNet ? "Market rent" : "AMI limit");
+  R.grossRent=R.rent*rented;
+  R.collected=R.grossRent*(1-s.vac);
+  R.lenderRent=R.grossRent*12*s.rentCredit;
+  // buyer
+  R.amiHH=R.ami100*s.hhFactor[s.hhSize-1];
+  R.income=R.amiHH*s.ownerAMI;
+  R.taxRate=c.assess*c.mill/1000;
+  R.taxFull=R.appr*R.taxRate/12;
+  R.tax=R.taxFull*(1-(ny.abate.on?ny.abate.val:0));
+  R.insM=s.ins*s.units/12; R.utilM=s.util*s.units; R.maintM=R.grossRent*s.maint;
+  R.opex=R.tax+R.insM+R.utilM+R.maintM;
+  R.k=pmtFactor(s.rate/12,s.term*12)+s.mip/12;
+  R.testA=Math.max(0,((R.income+R.lenderRent)/12*s.lenderCap-R.opex)/R.k/(1-s.dp));
+  R.testB=Math.max(0,(R.income/12*s.ownerCap+R.collected-R.opex)/R.k/(1-s.dp));
+  R.capacity=Math.min(R.testA,R.testB);
+  R.price=Math.min(R.capacity,R.appr);
+  R.priceBinding = R.capacity<R.appr ? (R.testA<=R.testB?"Buyer income (lender test)":"Buyer income (owner test)") : "Appraisal cap";
+  R.buyerGap=Math.max(0,R.appr-R.price);
+  // cost
+  const mod=s.system==="Modular";
+  const fac=s.factory[b]*(1-(mod&&ny.vol.on?ny.vol.val:0));
+  R.hcPSF= mod ? fac+s.field[b] : s.stick;
+  R.trans= mod ? s.transport[b] : 0;
+  R.site= ny.site.on?ny.site.val:0;
+  R.hard=R.hcPSF*R.gsf+R.trans+R.site;
+  R.softC=R.hard*s.soft-(ny.waiver.on?ny.waiver.val:0);
+  R.contC=(R.hard+R.softC)*s.cont;
+  R.finC=(R.hard+R.softC+R.contC)*s.fin;
+  R.tdc=R.hard+R.softC+R.contC+R.finC;
+  R.marginC=R.tdc*s.margin;
+  R.land= c.land.on?c.land.val:0;
+  R.req=R.tdc+R.marginC+R.land;
+  // results
+  R.subsidy=R.req-R.price;
+  R.subsidyUnit=R.subsidy/s.units;
+  R.devGap=Math.max(0,R.req-R.appr);
+  R.pricePct=R.price/R.apprBase;
+  R.pi=R.price*(1-s.dp)*R.k;
+  R.ownTotal=R.pi+R.opex;
+  R.net=R.ownTotal-R.collected;
+  R.netPct=R.net/(R.income/12);
+  // illustrative stack, filled in order
+  let left=Math.max(0,R.req-R.price);
+  const take=(cap)=>{const v=Math.max(0,Math.min(cap,left));left-=v;return v;};
+  R.sAssist=take(Math.min(R.buyerGap,s.tto+s.otherAssist));
+  R.sDoh=take(s.doh); R.sHdf=take(s.hdf); R.sAhp=take(s.ahp); R.sHtcc=take(s.htcc/s.htccHomes);
+  R.remain=left;
+  return R;
+}
+function computeAll(S){const o={};CITIES.forEach(c=>o[c]=compute(S,c));return o;}
+</script>
+
+<script>
+/* ===================== FORMATTERS ===================== */
+const usd=v=>(v<0?"−":"")+"$"+Math.round(Math.abs(v)).toLocaleString("en-US");
+const usdK=v=>{const a=Math.abs(v),sg=v<0?"−":"";if(a>=1e6)return sg+"$"+(a/1e6).toFixed(2)+"M";if(a>=1e4)return sg+"$"+Math.round(a/1e3)+"K";if(a>=1e3)return sg+"$"+(a/1e3).toFixed(1)+"K";return sg+"$"+Math.round(a);};
+const pct=(v,d=0)=>(v*100).toFixed(d)+"%";
+const F={usd,usdK,pct:v=>pct(v,0),pct1:v=>pct(v,1),pct2:v=>pct(v,2),num:v=>Math.round(v).toLocaleString("en-US"),sf:v=>Math.round(v).toLocaleString("en-US")+" sf",mo:v=>usd(v)+"/mo",psf:v=>"$"+v.toFixed(2)+"/sf",fac:v=>v.toFixed(5)};
+function deltaText(d,fmt){ if(Math.abs(d)<0.5&&fmt!=="pct"&&fmt!=="pct1"&&fmt!=="pct2"&&fmt!=="fac") return null; if(Math.abs(d)<1e-6) return null;
+  const sg=d>0?"+":"−", a=Math.abs(d);
+  if(fmt==="pct"||fmt==="pct1"||fmt==="pct2") return sg+(a*100).toFixed(1)+" pts";
+  if(fmt==="fac") return sg+a.toFixed(5);
+  if(fmt==="sf") return sg+Math.round(a).toLocaleString()+" sf";
+  if(fmt==="num") return sg+Math.round(a).toLocaleString();
+  return sg+usdK(a).replace("$","$"); }
+function deltaClass(d,good){ if(!good) return "neu"; return (d*good>0)?"good":"bad"; }
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+/* ===================== STATE ===================== */
+let S=clone(DEFAULTS), BASE=clone(DEFAULTS), baseLabel="workbook (Oct 8)";
+let focus="Hartford", mode="explore", lastKey="rate", selNode="o_remain", step=0;
+try{const m=localStorage.getItem("pge-mode"); if(m==="explain"||m==="explore") mode=m; const f=localStorage.getItem("pge-city"); if(CITIES.includes(f)) focus=f;}catch(e){}
+
+/* ===================== CONTROLS ===================== */
+const bOf=()=>bucketOf(S.shared.units);
+const SH=k=>({get:(St)=>St.shared[k],set:(St,c,v)=>{St.shared[k]=v;}});
+const SHA=(k,idxFn)=>({get:(St)=>St.shared[k][idxFn(St)],set:(St,c,v)=>{St.shared[k][idxFn(St)]=v;}});
+const CT=(k,idxFn)=>({get:(St,c)=>idxFn?St.cities[c][k][idxFn(St)]:St.cities[c][k],set:(St,c,v)=>{if(idxFn)St.cities[c][k][idxFn(St)]=v;else St.cities[c][k]=v;}});
+const NY=k=>({get:(St)=>St.shared.ny[k].val,set:(St,c,v)=>{St.shared.ny[k].val=v;},on:(St)=>St.shared.ny[k].on,toggle:(St,c,v)=>{St.shared.ny[k].on=v;}});
+const NYC=k=>({get:(St,c)=>St.cities[c][k].val,set:(St,c,v)=>{St.cities[c][k].val=v;},on:(St,c)=>St.cities[c][k].on,toggle:(St,c,v)=>{St.cities[c][k].on=v;}});
+const ri=St=>BR.indexOf(St.shared.rentBR), oi=St=>BR.indexOf(St.shared.ownerBR), bk=St=>bucketOf(St.shared.units);
+
+const GROUPS=[
+ {id:"scn",label:"Building and household"},
+ {id:"city",label:"City data"},
+ {id:"fin",label:"Buyer financing"},
+ {id:"own",label:"Owner operating costs"},
+ {id:"dev",label:"Development cost"},
+ {id:"stack",label:"Illustrative funding stack"},
+ {id:"ny",label:"Not yet modeled"}
+];
+const CTRL=[
+ // scenario
+ {k:"units",g:"scn",label:"Total units in the building",type:"range",min:2,max:6,step:1,fmt:"num",conf:"ch",node:"i_prog",...SH("units"),note:"One owner unit; the rest are rented. DOH's initiative excludes larger structures. Cost and appraisal buckets: 2, 3, 4–6 units."},
+ {k:"ownerBR",g:"scn",label:"Owner unit bedrooms",type:"select",opts:BR,conf:"ch",node:"i_prog",...SH("ownerBR"),note:"Team choice (family-sized)."},
+ {k:"rentBR",g:"scn",label:"Rental unit bedrooms",type:"select",opts:BR,conf:"ch",node:"i_rentT",...SH("rentBR"),note:"Sets the rent limit, utility allowance, market rent and unit size."},
+ {k:"ownerAMI",g:"scn",label:"Owner household income target",type:"range",min:0.3,max:1.2,step:0.01,fmt:"pct",conf:"ch",node:"i_hh",...SH("ownerAMI")},
+ {k:"hhSize",g:"scn",label:"Owner household size",type:"range",min:1,max:6,step:1,fmt:"num",conf:"ch",node:"i_hh",...SH("hhSize"),note:"HUD household-size factor applied to the 4-person AMI."},
+ {k:"rentAMI",g:"scn",label:"Rental unit rent target",type:"range",min:0,max:1.2,step:0.01,fmt:"pct",conf:"ch",node:"i_rentT",...SH("rentAMI"),note:"Set to 0% to charge market rent."},
+ {k:"capMkt",g:"scn",label:"Cap the AMI rent at market rent",type:"check",conf:"ch",node:"i_rentT",...SH("capMkt")},
+ {k:"system",g:"scn",label:"Construction system",type:"select",opts:["Modular","Stick-built"],conf:"ch",node:"i_mod",...SH("system")},
+ // city
+ {k:"ami50",g:"city",label:"HUD 50% income limit, 4-person",type:"range",min:45000,max:80000,step:50,fmt:"usd",conf:"src",node:"i_ami",...CT("ami50"),note:"HUD FY2026 Section 8 limits. The model uses 2 × this as 100% AMI."},
+ {k:"mkt",g:"city",label:()=>"Market asking rent, "+S.shared.rentBR+" (rental unit)",type:"range",min:800,max:3500,step:5,fmt:"usd",conf:"src",node:"i_mkt",...CT("mkt",ri),note:"Redfin, Aug 2026."},
+ {k:"med",g:"city",label:()=>"Median sale, existing "+BUCKET_LABEL[bOf()]+" (appraisal cap)",type:"range",min:150000,max:650000,step:1000,fmt:"usd",conf:"src",node:"i_med",...CT("med",bk),note:"CT Parcel and CAMA data, 2023–26 recorded sales. A new building is assumed to appraise at this level."},
+ {k:"mill",g:"city",label:"Mill rate",type:"range",min:20,max:80,step:0.05,fmt:"mill",conf:"ph",node:"i_mill",...CT("mill"),note:"PLACEHOLDER: verify with the city assessor. Assessed at 70% (CT statutory)."},
+ // financing
+ {k:"rate",g:"fin",label:"Mortgage rate",type:"range",min:0.03,max:0.09,step:0.00125,fmt:"pct3",conf:"ph",node:"i_mort",...SH("rate"),note:"PLACEHOLDER: verify a current 30-year CHFA or FHA rate."},
+ {k:"term",g:"fin",label:"Mortgage term (years)",type:"range",min:15,max:40,step:5,fmt:"num",conf:"ch",node:"i_mort",...SH("term")},
+ {k:"mip",g:"fin",label:"FHA mortgage insurance (annual)",type:"range",min:0,max:0.0125,step:0.0005,fmt:"pct2",conf:"ph",node:"i_mort",...SH("mip"),note:"Verify current FHA MIP."},
+ {k:"dp",g:"fin",label:"Down payment",type:"range",min:0,max:0.2,step:0.005,fmt:"pct1",conf:"src",node:"i_dp",...SH("dp"),note:"FHA minimum for a 2–4 unit owner-occupied purchase."},
+ {k:"rentCredit",g:"fin",label:"Lender credit on rental income",type:"range",min:0.5,max:1,step:0.05,fmt:"pct",conf:"src",node:"i_tests",...SH("rentCredit"),note:"DOH outline (p. 9): buyer qualified using 75% of future gross rent."},
+ {k:"lenderCap",g:"fin",label:"Test A cap: lender, % of qualifying income",type:"range",min:0.28,max:0.5,step:0.01,fmt:"pct",conf:"ch",node:"i_tests",...SH("lenderCap")},
+ {k:"ownerCap",g:"fin",label:"Test B cap: owner, % of own income",type:"range",min:0.2,max:0.4,step:0.01,fmt:"pct",conf:"ch",node:"i_tests",...SH("ownerCap")},
+ // owner costs
+ {k:"ins",g:"own",label:"Homeowner insurance ($/unit/yr)",type:"range",min:300,max:3000,step:25,fmt:"usd",conf:"ph",node:"i_opex",...SH("ins"),note:"PLACEHOLDER."},
+ {k:"util",g:"own",label:"Owner utilities and common area ($/unit/mo)",type:"range",min:0,max:250,step:5,fmt:"usd",conf:"ph",node:"i_opex",...SH("util"),note:"PLACEHOLDER."},
+ {k:"maint",g:"own",label:"Maintenance and reserves (% of rent)",type:"range",min:0,max:0.3,step:0.01,fmt:"pct",conf:"ch",node:"i_opex",...SH("maint"),note:"Small-landlord convention."},
+ {k:"vac",g:"own",label:"Vacancy and collection loss",type:"range",min:0,max:0.2,step:0.01,fmt:"pct",conf:"ch",node:"i_vac",...SH("vac"),note:"Used in the owner's own budget (Test B) only."},
+ {k:"ua",g:"own",label:()=>"Tenant utility allowance, "+S.shared.rentBR,type:"range",min:0,max:350,step:5,fmt:"usd",conf:"ph",node:"i_ua",...SHA("ua",ri),note:"PLACEHOLDER: use the local housing authority schedule."},
+ // dev
+ {k:"factory",g:"dev",label:()=>"Modular factory cost, $/GSF ("+BUCKET_LABEL[bOf()]+")",type:"range",min:100,max:300,step:0.5,fmt:"psf",conf:"ph",node:"i_mod",...SHA("factory",bk),note:"Workshop model, Reframe at a 10-building order. PLACEHOLDER."},
+ {k:"field",g:"dev",label:()=>"Field cost: foundation, set, tie-ins, $/GSF ("+BUCKET_LABEL[bOf()]+")",type:"range",min:30,max:160,step:0.5,fmt:"psf",conf:"ph",node:"i_mod",...SHA("field",bk)},
+ {k:"transport",g:"dev",label:()=>"Transport, crane and set, $/building ("+BUCKET_LABEL[bOf()]+")",type:"range",min:0,max:60000,step:250,fmt:"usd",conf:"ph",node:"i_trans",...SHA("transport",bk)},
+ {k:"stick",g:"dev",label:"Stick-built hard cost, $/GSF",type:"range",min:180,max:420,step:1,fmt:"psf",conf:"ph",node:"i_mod",...SH("stick"),note:"Used only when the system is Stick-built. Benchmark from the simplified calculator."},
+ {k:"ownerSF",g:"dev",label:()=>"Net sq ft, owner unit ("+S.shared.ownerBR+")",type:"range",min:350,max:1800,step:10,fmt:"num",conf:"ch",node:"i_prog",...SHA("sqft",oi),note:"Program assumption; replace with the architecture team's plans."},
+ {k:"rentSF",g:"dev",label:()=>"Net sq ft, rental unit ("+S.shared.rentBR+")",type:"range",min:350,max:1800,step:10,fmt:"num",conf:"ch",node:"i_prog",...SHA("sqft",ri)},
+ {k:"grossup",g:"dev",label:"Gross-up, net to gross sq ft",type:"range",min:1,max:1.35,step:0.01,fmt:"x",conf:"ch",node:"i_prog",...SH("grossup")},
+ {k:"soft",g:"dev",label:"Soft costs (% of hard)",type:"range",min:0.05,max:0.4,step:0.01,fmt:"pct",conf:"ch",node:"i_soft",...SH("soft"),note:"Design, permits, legal, insurance, marketing."},
+ {k:"cont",g:"dev",label:"Contingency (% of hard + soft)",type:"range",min:0,max:0.2,step:0.01,fmt:"pct",conf:"ch",node:"i_soft",...SH("cont")},
+ {k:"fin",g:"dev",label:"Construction financing",type:"range",min:0,max:0.12,step:0.005,fmt:"pct1",conf:"ch",node:"i_soft",...SH("fin")},
+ {k:"margin",g:"dev",label:"Developer margin (% of TDC)",type:"range",min:0,max:0.22,step:0.01,fmt:"pct",conf:"ch",node:"i_margin",...SH("margin"),note:"DOH accepts profit up to 22% of non-acquisition cost; a nonprofit may defer."},
+ // stack
+ {k:"tto",g:"stack",label:"CHFA Time To Own, max per buyer",type:"range",min:0,max:50000,step:1000,fmt:"usd",conf:"src",node:"i_stack",...SH("tto"),note:"Forgivable down payment loan. Only fills the buyer gap."},
+ {k:"otherAssist",g:"stack",label:"Other buyer assistance (e.g., FHLBank Equity Builder)",type:"range",min:0,max:40000,step:500,fmt:"usd",conf:"ph",node:"i_stack",...SH("otherAssist"),note:"Up to $32,099 at or below 80% AMI. Set above $0 to test."},
+ {k:"doh",g:"stack",label:"DOH Developer Subsidy, per home",type:"range",min:0,max:400000,step:5000,fmt:"usd",conf:"ph",node:"i_stack",...SH("doh"),note:"PRECEDENT from the redacted course budget, not a formula."},
+ {k:"hdf",g:"stack",label:"HDF / C4C Homeownership Construction, per home",type:"range",min:0,max:200000,step:5000,fmt:"usd",conf:"ph",node:"i_stack",...SH("hdf"),note:"Grants of up to $150,000 per unit. Unconfirmed whether it stacks with DOH."},
+ {k:"ahp",g:"stack",label:"FHLBank Boston AHP, per home",type:"range",min:0,max:150000,step:5000,fmt:"usd",conf:"src",node:"i_stack",...SH("ahp"),note:"Up to $100K per homeownership unit; competitive."},
+ {k:"htcc",g:"stack",label:"HTCC award to a nonprofit sponsor, per year",type:"range",min:0,max:1000000,step:25000,fmt:"usd",conf:"src",node:"i_stack",...SH("htcc"),note:"Up to $500K per nonprofit per year."},
+ {k:"htccHomes",g:"stack",label:"Homes sharing one HTCC award",type:"range",min:1,max:30,step:1,fmt:"num",conf:"ch",node:"i_stack",...SH("htccHomes")},
+ // not yet modeled
+ {k:"land",g:"ny",label:"Land or acquisition cost ($/building)",type:"range",ny:true,min:0,max:80000,step:500,fmt:"usd",conf:"ny",node:"n_land",...NYC("land"),scope:"city",note:"Land bank disposition price. Added to required proceeds outside the margin. Research: each land bank's pricing policy.",lands:"Required proceeds"},
+ {k:"site",g:"ny",label:"Site prep, demolition, remediation ($/building)",type:"range",ny:true,min:0,max:100000,step:1000,fmt:"usd",conf:"ny",node:"n_site",...NY("site"),note:"Vacant lots can carry demo debris, fill or contamination. Added to hard cost.",lands:"Hard cost"},
+ {k:"waiver",g:"ny",label:"City permit and fee waiver ($/building)",type:"range",ny:true,min:0,max:30000,step:500,fmt:"usd",conf:"ny",node:"n_waiver",...NY("waiver"),note:"Reduces soft costs. Research: what each city will waive for affordable homeownership.",lands:"Soft costs → TDC"},
+ {k:"vol",g:"ny",label:"Modular volume discount (factory cost)",type:"range",ny:true,min:0,max:0.25,step:0.01,fmt:"pct",conf:"ny",node:"n_vol",...NY("vol"),note:"A larger multi-city order may lower the factory price. Research: vendor quotes at 10, 25 and 50 buildings.",lands:"Hard cost"},
+ {k:"apprUp",g:"ny",label:"New-construction appraisal premium",type:"range",ny:true,min:0,max:0.4,step:0.01,fmt:"pct",conf:"ny",node:"n_apprUp",...NY("apprUp"),note:"New buildings may appraise above the existing 2-unit median. Raises the appraisal cap and the property tax on it. Research: comparable new-build appraisals.",lands:"Appraisal cap, property tax"},
+ {k:"abate",g:"ny",label:"Property tax abatement (share of tax)",type:"range",ny:true,min:0,max:1,step:0.05,fmt:"pct",conf:"ny",node:"n_abate",...NY("abate"),note:"A phased abatement lowers the owner's monthly costs, which raises what the buyer can pay. Research: each city's abatement ordinance.",lands:"Non-mortgage costs → buyer capacity"}
+];
+CTRL.forEach(c=>{ if(!c.scope) c.scope = (c.g==="city")?"city":"shared"; });
+const CTRL_BY=Object.fromEntries(CTRL.map(c=>[c.k,c]));
+const lbl=c=>typeof c.label==="function"?c.label():c.label;
+function fmtCtl(c,v){
+  switch(c.fmt){case "usd":return usd(v);case "pct":return pct(v,0);case "pct1":return pct(v,1);case "pct2":return pct(v,2);case "pct3":return pct(v,3);
+  case "psf":return "$"+(+v).toFixed(2);case "mill":return (+v).toFixed(2);case "x":return (+v).toFixed(2)+"×";default:return Math.round(v).toLocaleString();}
+}
+
+/* ===================== FLOW GRAPH ===================== */
+const N=[
+ // col 0 inputs
+ {id:"i_ami",col:0,label:"Area median income",type:"input",conf:"src",ctl:["ami50"],v:(R)=>usdK(R.ami100)+" 100% AMI",how:"HUD's 50% income limit for a 4-person household, doubled. This is the standard way to get 100% AMI, and it matches the published median in Hartford."},
+ {id:"i_hh",col:0,label:"Owner income target · household size",type:"input",conf:"ch",ctl:["ownerAMI","hhSize"],v:()=>pct(S.shared.ownerAMI)+" AMI · "+S.shared.hhSize+" people",how:"Who the home is for. The household's income is this share of AMI, adjusted for household size."},
+ {id:"i_rentT",col:0,label:"Rent target · rental bedrooms",type:"input",conf:"ch",ctl:["rentAMI","rentBR","capMkt"],v:()=>(S.shared.rentAMI===0?"Market":pct(S.shared.rentAMI)+" AMI")+" · "+S.shared.rentBR,how:"The rental unit is rent-restricted at this share of AMI. 0% means market rent."},
+ {id:"i_mkt",col:0,label:"Market asking rent",type:"input",conf:"src",ctl:["mkt"],v:(R)=>usd(R.market)+"/mo",how:"Redfin asking rent for the rental unit's bedroom count."},
+ {id:"i_ua",col:0,label:"Tenant utility allowance",type:"input",conf:"ph",ctl:["ua"],v:(R)=>usd(R.uaV)+"/mo",how:"Subtracted from the gross AMI rent limit, because the tenant pays their own utilities."},
+ {id:"i_vac",col:0,label:"Vacancy",type:"input",conf:"ch",ctl:["vac"],v:()=>pct(S.shared.vac),how:"Share of rent the owner expects to lose. Used in the owner's own budget only."},
+ {id:"i_tests",col:0,label:"Underwriting caps · rent credit",type:"input",conf:"src",ctl:["lenderCap","ownerCap","rentCredit"],v:()=>pct(S.shared.lenderCap)+" / "+pct(S.shared.ownerCap)+" · "+pct(S.shared.rentCredit),how:"Test A (lender) lets housing cost reach 40% of own income plus 75% of rent. Test B (owner) holds the owner to 30% of own income, plus the rent actually collected."},
+ {id:"i_mort",col:0,label:"Mortgage rate · term · FHA MIP",type:"input",conf:"ph",ctl:["rate","term","mip"],v:()=>pct(S.shared.rate,2)+" · "+S.shared.term+"y · "+pct(S.shared.mip,2),how:"Sets the monthly payment for each dollar borrowed."},
+ {id:"i_dp",col:0,label:"Down payment",type:"input",conf:"src",ctl:["dp"],v:()=>pct(S.shared.dp,1),how:"FHA minimum for a 2–4 unit owner-occupied purchase."},
+ {id:"i_opex",col:0,label:"Insurance · utilities · maintenance",type:"input",conf:"ph",ctl:["ins","util","maint"],v:()=>usd(S.shared.ins)+" · "+usd(S.shared.util)+" · "+pct(S.shared.maint),how:"The owner's other monthly costs of running the building."},
+ {id:"i_mill",col:0,label:"Mill rate",type:"input",conf:"ph",ctl:["mill"],v:(R,c)=>S.cities[c||focus].mill.toFixed(2)+" mills",how:"Property tax per $1,000 of assessed value. CT assesses at 70%."},
+ {id:"n_abate",col:0,label:"Tax abatement",type:"ny",conf:"ny",ctl:["abate"],v:()=>nyv("abate"),how:"Not yet modeled. Reduces monthly property tax."},
+ {id:"i_med",col:0,label:"Existing building median sale",type:"input",conf:"src",ctl:["med"],v:(R)=>usdK(R.apprBase),how:"Median recorded sale of an existing building this size. Used as the appraisal cap."},
+ {id:"n_apprUp",col:0,label:"New-build appraisal premium",type:"ny",conf:"ny",ctl:["apprUp"],v:()=>nyv("apprUp"),how:"Not yet modeled. New construction may appraise above existing stock."},
+ {id:"i_prog",col:0,label:"Units · bedrooms · sq ft",type:"input",conf:"ch",ctl:["units","ownerBR","ownerSF","rentSF","grossup"],v:(R)=>S.shared.units+" units · "+S.shared.ownerBR+"+"+S.shared.rentBR,how:"The building program: unit count, bedroom mix, net sq ft and gross-up."},
+ {id:"i_mod",col:0,label:"Hard cost per sq ft",type:"input",conf:"ph",ctl:["system","factory","field","stick"],v:(R)=>(S.shared.system==="Modular"?"Modular ":"Stick ")+"$"+R.hcPSF.toFixed(0)+"/sf",how:"Modular: factory plus field cost per gross sq ft, by building size. Stick-built: one benchmark."},
+ {id:"n_vol",col:0,label:"Modular volume discount",type:"ny",conf:"ny",ctl:["vol"],v:()=>nyv("vol"),how:"Not yet modeled. Discount on factory cost for a larger order."},
+ {id:"i_trans",col:0,label:"Transport, crane, set",type:"input",conf:"ph",ctl:["transport"],v:(R)=>usdK(R.trans),how:"A fixed cost per modular building."},
+ {id:"n_site",col:0,label:"Site prep · remediation",type:"ny",conf:"ny",ctl:["site"],v:()=>nyv("site"),how:"Not yet modeled. Added to hard cost."},
+ {id:"i_soft",col:0,label:"Soft · contingency · constr. finance",type:"input",conf:"ch",ctl:["soft","cont","fin"],v:()=>pct(S.shared.soft)+" · "+pct(S.shared.cont)+" · "+pct(S.shared.fin),how:"Loads applied in sequence on top of hard cost."},
+ {id:"n_waiver",col:0,label:"City fee waiver",type:"ny",conf:"ny",ctl:["waiver"],v:()=>nyv("waiver"),how:"Not yet modeled. Reduces soft costs."},
+ {id:"i_margin",col:0,label:"Developer margin",type:"input",conf:"ch",ctl:["margin"],v:()=>pct(S.shared.margin),how:"Share of TDC kept as developer profit or fee."},
+ {id:"n_land",col:0,label:"Land / acquisition",type:"ny",conf:"ny",ctl:["land"],v:(R,c)=>{const l=S.cities[c||focus].land;return l.on?usdK(l.val):"off";},how:"Not yet modeled. Land bank disposition price."},
+ {id:"i_stack",col:0,label:"Funding stack caps",type:"input",conf:"ph",ctl:["tto","otherAssist","doh","hdf","ahp","htcc","htccHomes"],v:()=>"DOH "+usdK(S.shared.doh)+" · HDF "+usdK(S.shared.hdf),how:"Caps and one precedent, not awards. Filled in order: buyer assistance, DOH, HDF, AHP, HTCC."},
+ // col 1
+ {id:"c_inc",col:1,label:"Owner household income",fmt:"usd",r:"income",good:1,deps:["i_ami","i_hh"],how:"100% AMI × household-size factor × income target.",f:"AMI100 × HH factor × target %"},
+ {id:"c_rentLim",col:1,label:"AMI rent limit, net",fmt:"mo",r:"rentNet",deps:["i_ami","i_rentT","i_ua"],how:"AMI × bedroom factor × rent target × 30% ÷ 12, minus the utility allowance.",f:"AMI100 × BR factor × rent % × 30% / 12 − UA"},
+ {id:"c_rent",col:1,label:"Rent charged",fmt:"mo",r:"rent",good:1,deps:["c_rentLim","i_mkt","i_rentT"],how:"The lower of the AMI limit and market rent when the cap is on.",f:"MIN(AMI limit, market) per rental unit",extra:R=>"Set by: "+R.rentBinding},
+ {id:"c_collect",col:1,label:"Rent collected, after vacancy",fmt:"mo",r:"collected",good:1,deps:["c_rent","i_vac"],how:"Gross rent from all rental units × (1 − vacancy). Counts toward Test B.",f:"rent × rented units × (1 − vacancy)"},
+ {id:"c_lenderRent",col:1,label:"Rent a lender counts (yr)",fmt:"usd",r:"lenderRent",good:1,deps:["c_rent","i_tests"],how:"Gross annual rent × the 75% lender credit. Counts toward Test A.",f:"rent × rented units × 12 × 75%"},
+ {id:"c_appr",col:1,label:"Appraisal cap",fmt:"usd",r:"appr",good:1,deps:["i_med","i_prog","n_apprUp"],how:"The most a buyer can borrow against. The median sale of an existing building in the same size bucket.",f:"median sale[size bucket] × (1 + premium)"},
+ {id:"c_opex",col:1,label:"Non-mortgage costs",fmt:"mo",r:"opex",good:-1,deps:["c_appr","i_mill","i_opex","c_rent","n_abate"],how:"Property tax (on the appraisal cap) + insurance + owner utilities + maintenance.",f:"tax + insurance + utilities + maintenance"},
+ {id:"c_k",col:1,label:"Payment per $1 borrowed",fmt:"fac",r:"k",good:-1,deps:["i_mort"],how:"Monthly principal and interest per dollar of loan, plus FHA insurance.",f:"PMT(rate/12, term×12, 1) + MIP/12"},
+ {id:"c_gsf",col:1,label:"Gross sq ft",fmt:"sf",r:"gsf",deps:["i_prog"],how:"(Owner unit + rented units) net sq ft × gross-up.",f:"(owner sf + rented × rental sf) × gross-up"},
+ {id:"c_hard",col:1,label:"Hard cost",fmt:"usd",r:"hard",good:-1,deps:["c_gsf","i_mod","n_vol","i_trans","n_site"],how:"Cost per gross sq ft × gross sq ft, plus transport and set.",f:"$/GSF × GSF + transport (+ site prep)"},
+ // col 2
+ {id:"c_testA",col:2,label:"Test A: lender max price",fmt:"usd",r:"testA",good:1,deps:["c_inc","c_lenderRent","c_opex","c_k","i_dp","i_tests"],how:"40% of (own income + credited rent), minus non-mortgage costs, turned into a loan, plus the down payment.",f:"((inc + lender rent)/12 × 40% − costs) / k / (1 − down)"},
+ {id:"c_testB",col:2,label:"Test B: owner max price",fmt:"usd",r:"testB",good:1,deps:["c_inc","c_collect","c_opex","c_k","i_dp","i_tests"],how:"30% of own income + rent collected, minus non-mortgage costs, turned into a loan, plus the down payment.",f:"(inc/12 × 30% + rent collected − costs) / k / (1 − down)"},
+ {id:"c_tdc",col:2,label:"Total development cost",fmt:"usd",r:"tdc",good:-1,deps:["c_hard","i_soft","n_waiver"],how:"Hard cost, plus soft costs, contingency and construction financing, each applied in turn.",f:"hard + soft + contingency + construction finance"},
+ {id:"c_req",col:2,label:"Required proceeds",fmt:"usd",r:"req",good:-1,deps:["c_tdc","i_margin","n_land"],how:"What the building must sell for so the developer covers cost and margin.",f:"TDC × (1 + margin) (+ land)"},
+ // col 3
+ {id:"o_price",col:3,label:"Achievable sale price",fmt:"usd",r:"price",good:1,out:true,deps:["c_testA","c_testB","c_appr"],how:"The lower of what the buyer can pay (the lower test) and the appraisal cap.",f:"MIN(Test A, Test B, appraisal cap)",extra:R=>"Set by: "+R.priceBinding},
+ {id:"o_buyerGap",col:3,label:"Buyer gap",fmt:"usd",r:"buyerGap",good:-1,out:true,deps:["c_appr","o_price"],how:"How far the buyer's price falls short of the appraisal cap. Only buyer assistance can fill this part.",f:"MAX(0, appraisal cap − price)"},
+ {id:"o_net",col:3,label:"Owner's net monthly cost",fmt:"mo",r:"net",good:-1,out:true,deps:["o_price","c_k","i_dp","c_opex","c_collect","c_inc"],how:"Mortgage, FHA insurance, tax, insurance, utilities and maintenance, minus rent collected.",f:"P&I+MIP + costs − rent collected",extra:R=>pct(R.netPct,1)+" of owner income"},
+ {id:"o_devGap",col:3,label:"Developer gap",fmt:"usd",r:"devGap",good:-1,out:true,deps:["c_req","c_appr"],how:"Required proceeds minus the appraisal cap. The gap that exists even if the buyer could pay full appraised value.",f:"MAX(0, required − appraisal cap)"},
+ {id:"o_subsidy",col:3,label:"Subsidy needed per building",fmt:"usd",r:"subsidy",good:-1,out:true,deps:["c_req","o_price"],how:"Required proceeds minus the achievable price. Divide by units for the deck's 'gap per door'.",f:"required proceeds − achievable price",extra:R=>usdK(R.subsidyUnit)+" per unit"},
+ {id:"o_remain",col:3,label:"Remaining gap after stack",fmt:"usd",r:"remain",good:-1,out:true,deps:["o_subsidy","o_buyerGap","i_stack"],how:"What is left after buyer assistance (buyer gap only), DOH, HDF, AHP and an HTCC share are applied in order.",f:"MAX(0, subsidy − assistance − DOH − HDF − AHP − HTCC/homes)"}
+];
+const NB=Object.fromEntries(N.map(n=>[n.id,n]));
+N.forEach(n=>{n.deps=n.deps||[];n.kids=[];});
+N.forEach(n=>n.deps.forEach(d=>NB[d].kids.push(n.id)));
+CTRL.forEach(c=>{const n=NB[c.node]; if(n){n.ctl=n.ctl||[]; if(!n.ctl.includes(c.k)) n.ctl.push(c.k);}});
+function nyv(k){const o=S.shared.ny[k];if(!o.on)return "off";const c=CTRL_BY[k];return fmtCtl(c,o.val);}
+const CONF_ABBR={src:"SRC",ph:"PH",ch:"",ny:""};
+const CONF_LABEL={src:"Sourced",ph:"Placeholder",ch:"Team choice",ny:"Not yet modeled"};
+
+// layout
+const COLX=[6,286,532,770], COLW=[240,212,205,230], NH0=38, NH=50, TOPPAD=34;
+let POS={};
+function layout(){
+  const c0=N.filter(n=>n.col===0); let y=TOPPAD;
+  c0.forEach(n=>{POS[n.id]={x:COLX[0],y,w:COLW[0],h:NH0};y+=NH0+8;});
+  const H=y;
+  for(let col=1;col<=3;col++){
+    const ns=N.filter(n=>n.col===col);
+    ns.forEach(n=>{const ys=n.deps.map(d=>POS[d]?POS[d].y+POS[d].h/2:H/2);n._t=ys.reduce((a,b)=>a+b,0)/ys.length-NH/2;});
+    ns.sort((a,b)=>a._t-b._t);
+    let last=-1e9; const gap=14;
+    ns.forEach(n=>{let yy=Math.max(n._t,last+NH+gap,TOPPAD);POS[n.id]={x:COLX[col],y:yy,w:COLW[col],h:NH};last=yy;});
+    const over=last+NH-H; if(over>0){ns.forEach(n=>POS[n.id].y-=over);} // shift up
+    let prev=TOPPAD-NH-gap; ns.forEach(n=>{if(POS[n.id].y<prev+NH+gap)POS[n.id].y=prev+NH+gap;prev=POS[n.id].y;});
+  }
+  return H+6;
+}
+const SVGNS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+let NODE_EL={}, EDGE_EL=[];
+function buildFlow(){
+  const svg=document.getElementById("flow"); svg.innerHTML="";
+  const H=layout(); const W=COLX[3]+COLW[3]+10;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  ["Inputs","Calculations","","Results"].forEach((t,i)=>{ if(t) el("text",{x:COLX[i],y:18,class:"colhead"},svg).textContent=t;});
+  const eg=el("g",{},svg), ng=el("g",{},svg); EDGE_EL=[]; NODE_EL={};
+  N.forEach(n=>n.deps.forEach(d=>{const a=POS[d],b=POS[n.id];const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const mx=(x1+x2)/2;
+    const p=el("path",{d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,class:"edge"},eg);EDGE_EL.push({from:d,to:n.id,el:p});}));
+  N.forEach(n=>{const p=POS[n.id];const g=el("g",{class:"node "+(n.type==="input"?"input":n.type==="ny"?"ny":n.out?"output":"calc"),transform:`translate(${p.x},${p.y})`,tabindex:"0",role:"button","aria-label":n.label},ng);
+    el("rect",{width:p.w,height:p.h,rx:5,ry:5},g);
+    const t=el("text",{x:9,y:n.col===0?15:17,class:"lbl"},g); t.textContent=n.label;
+    const v=el("text",{x:9,y:n.col===0?31:37,class:"val"},g);
+    const d=el("text",{x:p.w-8,y:n.col===0?31:37,class:"dlt","text-anchor":"end"},g);
+    if(CONF_ABBR[n.conf]){const c=el("text",{x:p.w-8,y:n.col===0?15:17,class:"conf","text-anchor":"end",fill:cssvar(n.conf)},g);c.textContent=CONF_ABBR[n.conf];}
+    NODE_EL[n.id]={g,v,d};
+    g.addEventListener("mouseenter",()=>trace(n.id,"both"));
+    g.addEventListener("mouseleave",()=>untrace());
+    g.addEventListener("focus",()=>trace(n.id,"both"));
+    g.addEventListener("blur",()=>untrace());
+    g.addEventListener("click",()=>{selNode=n.id;renderInspector();markSel();});
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selNode=n.id;renderInspector();markSel();}});
+  });
+  markSel();
+}
+function cssvar(conf){return conf==="src"?"var(--tag-src)":conf==="ph"?"var(--tag-ph)":"var(--ink-3)";}
+function markSel(){Object.entries(NODE_EL).forEach(([id,o])=>o.g.classList.toggle("sel",id===selNode));}
+function reach(id,dir){const out=new Set([id]);const q=[id];while(q.length){const x=q.shift();const nx=dir==="down"?NB[x].kids:NB[x].deps;nx.forEach(y=>{if(!out.has(y)){out.add(y);q.push(y);}});}return out;}
+let stepLock=null;
+function trace(id,dir,ids){
+  const svg=document.getElementById("flow");
+  let set; if(ids){set=new Set();ids.forEach(i=>reach(i,"down").forEach(x=>set.add(x)));}
+  else{set=dir==="down"?reach(id,"down"):new Set([...reach(id,"down"),...reach(id,"up")]);}
+  svg.classList.add("tracing");
+  Object.entries(NODE_EL).forEach(([k,o])=>o.g.classList.toggle("on",set.has(k)));
+  EDGE_EL.forEach(e=>e.el.classList.toggle("on",set.has(e.from)&&set.has(e.to)));
+  // highlight controls
+  document.querySelectorAll(".ctl").forEach(c=>{const ck=CTRL_BY[c.dataset.k];c.classList.toggle("hot",!!ck&&set.has(ck.node));});
+}
+function untrace(){
+  if(stepLock){highlightSet(stepLock);return;}
+  const svg=document.getElementById("flow");svg.classList.remove("tracing");
+  Object.values(NODE_EL).forEach(o=>o.g.classList.remove("on"));EDGE_EL.forEach(e=>e.el.classList.remove("on"));
+  document.querySelectorAll(".ctl.hot").forEach(c=>c.classList.remove("hot"));
+}
+function highlightSet(ids){
+  const svg=document.getElementById("flow"); const set=new Set(ids); svg.classList.add("tracing");
+  Object.entries(NODE_EL).forEach(([k,o])=>o.g.classList.toggle("on",set.has(k)));
+  EDGE_EL.forEach(e=>e.el.classList.toggle("on",set.has(e.from)&&set.has(e.to)));
+}
+
+/* ===================== RENDER ===================== */
+let CUR, BAS, PREV;
+function recompute(){PREV=CUR;CUR=computeAll(S);BAS=computeAll(BASE);}
+function renderFlow(){
+  const R=CUR[focus],B=BAS[focus],P=PREV?PREV[focus]:null;
+  document.getElementById("flowCity").textContent=focus;
+  N.forEach(n=>{const o=NODE_EL[n.id];if(!o)return;
+    if(n.type==="input"||n.type==="ny"){o.v.textContent=n.v(R,focus);o.d.textContent="";
+      if(n.type==="ny"){const on=(n.id==="n_land")?S.cities[focus].land.on:S.shared.ny[n.ctl[0]].on;o.g.classList.toggle("on",on);}
+      const changed=n.ctl.some(k=>{const c=CTRL_BY[k];return JSON.stringify(c.get(S,focus))!==JSON.stringify(c.get(BASE,focus))||(c.on&&c.on(S,focus)!==c.on(BASE,focus));});
+      o.d.textContent=changed?"changed":""; o.d.setAttribute("class","dlt neu");
+    } else {
+      const v=R[n.r],b=B[n.r];o.v.textContent=F[n.fmt](v);
+      const dt=deltaText(v-b,n.fmt);o.d.textContent=dt?dt:"";o.d.setAttribute("class","dlt "+deltaClass(v-b,n.good));
+      if(P&&Math.abs(P[n.r]-v)>1e-9){o.g.classList.remove("pulse");void o.g.getBBox();o.g.classList.add("pulse");}
+    }
+  });
+}
+function chip(d,fmt,good){const t=deltaText(d,fmt);if(!t)return `<span class="chip zero">no change</span>`;return `<span class="chip ${deltaClass(d,good)}">${t}</span>`;}
+function renderKPIs(){
+  const R=CUR[focus],B=BAS[focus];
+  const K=[
+    {l:"Achievable sale price",r:"price",fmt:"usd",good:1,s:R.priceBinding},
+    {l:"Subsidy needed per building",r:"subsidy",fmt:"usd",good:-1,s:usd(R.subsidyUnit)+" per unit · "+pct(R.subsidy/R.tdc)+" of TDC"},
+    {l:"Remaining gap after illustrative stack",r:"remain",fmt:"usd",good:-1,s:"After assistance, DOH, HDF, AHP, HTCC share"},
+    {l:"Owner's net monthly cost",r:"net",fmt:"usd",good:-1,s:pct(R.netPct,1)+" of owner income ("+usd(R.income)+"/yr)"}
+  ];
+  document.getElementById("kpis").innerHTML=K.map(k=>`<div class="kpi"><span class="eyebrow">${focus} · ${k.l}</span><span class="v">${usd(R[k.r])}${k.r==="net"?'<small style="font-size:.6em;color:var(--ink-3)">/mo</small>':""}</span>${chip(R[k.r]-B[k.r],k.fmt,k.good)}<span class="s">${k.s}</span></div>`).join("");
+}
+function renderInspector(){
+  const n=NB[selNode], box=document.getElementById("inspector");
+  const tag=`<span class="tag ${n.conf||"ch"}">${n.type==="input"||n.type==="ny"?CONF_LABEL[n.conf]:(n.out?"Result":"Calculation")}</span>`;
+  let vals="";
+  if(n.r){vals=`<div class="cityvals">${CITIES.map(c=>{const v=CUR[c][n.r],b=BAS[c][n.r];return `<div><span><span class="dot" style="background:var(${CITY_COLOR[c]})"></span> ${c}</span><span><span class="num">${F[n.fmt](v)}</span> ${chip(v-b,n.fmt,n.good)}</span></div>`;}).join("")}</div>`;}
+  else {vals=`<div class="cityvals">${CITIES.map(c=>`<div><span><span class="dot" style="background:var(${CITY_COLOR[c]})"></span> ${c}</span><span class="num">${n.v(CUR[c],c)}</span></div>`).join("")}</div>`;}
+  const extra=n.extra?`<p class="note">${focus}: ${n.extra(CUR[focus])}</p>`:"";
+  const ctl=(n.ctl||[]).length?`<div><span class="eyebrow">Adjust</span><div class="linklist">${n.ctl.map(k=>`<button data-go="${k}">${lbl(CTRL_BY[k])}</button>`).join("")}</div></div>`:"";
+  const dep=n.deps.length?`<div><span class="eyebrow">Depends on</span><div class="linklist">${n.deps.map(d=>`<button data-node="${d}">${NB[d].label}</button>`).join("")}</div></div>`:"";
+  const kid=n.kids.length?`<div><span class="eyebrow">Feeds into</span><div class="linklist">${n.kids.map(d=>`<button data-node="${d}">${NB[d].label}</button>`).join("")}</div></div>`:"";
+  box.innerHTML=`<div><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="eyebrow">Selected box</span>${tag}</div><h3>${n.label}</h3><p class="how">${n.how}</p>${n.f?`<div class="formula">${n.f}</div>`:""}</div><div>${vals}${extra}</div><div>${dep}${kid}${ctl}</div>`;
+  box.querySelectorAll("[data-node]").forEach(b=>b.onclick=()=>{selNode=b.dataset.node;renderInspector();markSel();});
+  box.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goCtl(b.dataset.go));
+}
+function goCtl(k){
+  if(mode==="explain"){setMode("explore");}
+  const c=document.querySelector(`.ctl[data-k="${k}"]`);if(!c)return;const d=c.closest("details");if(d)d.open=true;
+  c.scrollIntoView({block:"center",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  const i=c.querySelector("input,select");if(i)i.focus({preventScroll:true});
+  c.classList.add("hot");setTimeout(()=>c.classList.remove("hot"),1400);
+}
+
+/* --- controls UI --- */
+function buildControls(){
+  const box=document.getElementById("controls"); box.innerHTML="";
+  let openState={};try{openState=JSON.parse(localStorage.getItem("pge-open")||"{}");}catch(e){}
+  GROUPS.forEach(g=>{
+    const d=document.createElement("details");d.className="grp";d.dataset.g=g.id;
+    const narrow=matchMedia("(max-width:980px)").matches;
+    d.open= openState[g.id]!==undefined?openState[g.id]:(!narrow&&(g.id==="scn"||g.id==="city"));
+    d.addEventListener("toggle",()=>{openState[g.id]=d.open;try{localStorage.setItem("pge-open",JSON.stringify(openState));}catch(e){}});
+    const cnt=CTRL.filter(c=>c.g===g.id);
+    const ph=cnt.filter(c=>c.conf==="ph").length;
+    d.innerHTML=`<summary><h3>${g.label}</h3><span class="note">${cnt.length} inputs${ph?` · ${ph} placeholder`:""}</span></summary><div class="grp-body"></div>`;
+    const body=d.querySelector(".grp-body");
+    cnt.forEach(c=>body.appendChild(ctlEl(c)));
+    box.appendChild(d);
+  });
+  const e=document.createElement("div");e.className="rail-empty";e.id="railEmpty";e.hidden=true;box.appendChild(e);
+}
+function ctlEl(c){
+  const w=document.createElement("div");w.className="ctl"+(c.ny?" ny":"");w.dataset.k=c.k;
+  const id="ctl-"+c.k;
+  let inp="";
+  if(c.type==="range") inp=`<input type="range" id="${id}" min="${c.min}" max="${c.max}" step="${c.step}">`;
+  if(c.type==="select") inp=`<select id="${id}">${c.opts.map(o=>`<option>${o}</option>`).join("")}</select>`;
+  if(c.type==="check") inp=`<label class="switch"><input type="checkbox" id="${id}"> <span>On</span></label>`;
+  const sw=c.ny?`<label class="switch"><input type="checkbox" id="${id}-on"> Include in model</label>`:"";
+  w.innerHTML=`<div class="ctl-top"><label for="${id}" class="ctl-l"></label>${c.type==="range"?`<span class="ctl-val"></span>`:""}</div>${c.type!=="range"?inp:""}${c.type==="range"?inp:""}${sw}<div class="ctl-meta"><span class="tag ${c.conf}">${CONF_LABEL[c.conf]}</span><span class="scope">${c.scope==="city"?"CITY":"ALL"}</span>${c.lands?`<span>→ ${c.lands}</span>`:""}</div>${c.note?`<div class="note">${c.note}</div>`:""}`;
+  const input=w.querySelector("#"+CSS.escape(id));
+  const handler=()=>{
+    let v= c.type==="range"?parseFloat(input.value): c.type==="check"?input.checked: input.value;
+    applySet(c,v); lastKey=c.type==="range"?c.k:lastKey; if(c.type==="range")syncSweepIn();
+    update(); trace(c.node,"down"); clearTimeout(w._t); w._t=setTimeout(untrace,900);
+  };
+  input.addEventListener("input",handler); input.addEventListener("change",handler);
+  input.addEventListener("focus",()=>trace(c.node,"down")); input.addEventListener("blur",untrace);
+  w.addEventListener("mouseenter",()=>trace(c.node,"down")); w.addEventListener("mouseleave",untrace);
+  if(c.ny){const t=w.querySelector("#"+CSS.escape(id+"-on"));t.addEventListener("change",()=>{c.toggle(S,focus,t.checked);update();trace(c.node,"down");setTimeout(untrace,900);});}
+  return w;
+}
+function applySet(c,v){ c.set(S,focus,v); }
+function syncControls(){
+  document.querySelectorAll(".ctl").forEach(w=>{const c=CTRL_BY[w.dataset.k];const id="ctl-"+c.k;const input=w.querySelector("#"+CSS.escape(id));
+    const v=c.get(S,focus), b=c.get(BASE,focus);
+    w.querySelector(".ctl-l").textContent=lbl(c);
+    if(c.type==="range"){ if(document.activeElement!==input) input.value=v; const tv=w.querySelector(".ctl-val"); tv.textContent=fmtCtl(c,v); tv.classList.toggle("changed",Math.abs(v-b)>1e-9);}
+    else if(c.type==="check") input.checked=!!v; else input.value=v;
+    if(c.ny){const on=c.on(S,focus);w.querySelector("#"+CSS.escape(id+"-on")).checked=on;w.classList.toggle("off",!on);}
+  });
+}
+
+/* --- comparison --- */
+const STACK=[{k:"price",l:"Buyer pays (mortgage + down payment)",v:"--s-buyer"},{k:"sAssist",l:"Buyer assistance",v:"--s-assist"},{k:"sDoh",l:"DOH",v:"--s-doh"},{k:"sHdf",l:"HDF / C4C",v:"--s-hdf"},{k:"sAhp",l:"FHLBank AHP",v:"--s-ahp"},{k:"sHtcc",l:"HTCC share",v:"--s-htcc"},{k:"remain",l:"Remaining gap",v:"--s-gap"}];
+function renderFacts(){
+  const MD={"Hartford":{own:"26%",below50:"61%",mhi:50418,role:"Deep-need rental market"},"New Haven":{own:"30%",below50:"54%",mhi:59705,role:"Growing, high-revenue market"},"Waterbury":{own:"46%",below50:"73%",mhi:47881,role:"Ownership city"}};
+  document.getElementById("cityFacts").innerHTML=CITIES.map(c=>{const m=MD[c];return `<div class="cf" style="--c:var(${CITY_COLOR[c]})"><b>${c}</b><span class="role">${m.role}</span><span>Homeownership ${m.own} · renters below 50% AMI ${m.below50}</span><span>City median household income ${usd(m.mhi)} · model AMI ${usd(CUR[c].ami100)}</span></div>`;}).join("");
+  document.getElementById("stackKey").innerHTML=STACK.map(s=>`<span><span class="sw" style="background:var(${s.v});border-color:transparent"></span>${s.l}</span>`).join("")+`<span><span class="sw" style="background:transparent;border:0;border-left:2px dashed var(--ink)"></span>Appraisal cap</span>`;
+}
+function renderStack(){
+  const svg=document.getElementById("stack"); svg.innerHTML="";
+  const W=900,L=110,Rr=70,rowH=58,top=20,H=top+CITIES.length*rowH+30;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const max=Math.max(...CITIES.map(c=>Math.max(CUR[c].req,BAS[c].req,CUR[c].appr)))*1.04;
+  const x=v=>L+v/max*(W-L-Rr);
+  // grid
+  const stepV=max>1.5e6?250000:(max>6e5?200000:100000);
+  for(let v=0;v<=max;v+=stepV){el("line",{x1:x(v),x2:x(v),y1:top-6,y2:H-24,stroke:"var(--rule-2)","stroke-width":1},svg);const t=el("text",{x:x(v),y:H-8,"text-anchor":"middle","font-size":11,fill:"var(--ink-3)","font-family":"IBM Plex Mono, monospace"},svg);t.textContent=usdK(v);}
+  CITIES.forEach((c,i)=>{const R=CUR[c],B=BAS[c],y=top+i*rowH;
+    const t=el("text",{x:0,y:y+16,"font-size":13,"font-weight":600,fill:"var(--ink)"},svg);t.textContent=c;
+    const t2=el("text",{x:0,y:y+32,"font-size":11,fill:"var(--ink-3)","font-family":"IBM Plex Mono, monospace"},svg);t2.textContent=usdK(R.req)+" needed";
+    el("rect",{x:L-10,y:y+4,width:4,height:30,fill:`var(${CITY_COLOR[c]})`},svg);
+    let acc=0;
+    STACK.forEach(s=>{const v=R[s.k];if(v<=0.5)return;const r=el("rect",{x:x(acc),y:y+4,width:Math.max(0,x(acc+v)-x(acc)),height:30,fill:`var(${s.v})`},svg);
+      const tt=el("title",{},r);tt.textContent=`${c} · ${s.l}: ${usd(v)}`;
+      if(x(acc+v)-x(acc)>46){const lt=el("text",{x:x(acc)+5,y:y+23,"font-size":10.5,fill:"var(--sheet)","font-family":"IBM Plex Mono, monospace","font-weight":600},svg);lt.textContent=usdK(v);}
+      acc+=v;});
+    // appraisal cap
+    el("line",{x1:x(R.appr),x2:x(R.appr),y1:y,y2:y+38,stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"4 3"},svg);
+    // baseline ticks: price boundary and required
+    [[B.price,"base price"],[B.req,"base need"],[B.req-B.remain,"base funded"]].forEach(([v,n])=>{el("path",{d:`M${x(v)-4},${y+42} L${x(v)+4},${y+42} L${x(v)},${y+36} Z`,fill:"var(--ink-3)"},svg).appendChild(Object.assign(document.createElementNS(SVGNS,"title"),{textContent:`${c} baseline ${n}: ${usd(v)}`}));});
+    const rv=el("text",{x:x(R.req)+6,y:y+23,"font-size":11,"font-weight":600,fill:R.remain>0?"var(--bad)":"var(--good)","font-family":"IBM Plex Mono, monospace"},svg);rv.textContent=R.remain>0?"gap "+usdK(R.remain):"funded";
+  });
+}
+const CMP=[
+ {l:"Owner income at target AMI",r:"income",fmt:"usd",good:1},
+ {l:"Rent charged, rental unit",r:"rent",fmt:"usd",good:1},
+ {l:"Market asking rent, rental unit",r:"market",fmt:"usd",good:0},
+ {l:"Buyer capacity",r:"capacity",fmt:"usd",good:1},
+ {l:"Appraisal cap",r:"appr",fmt:"usd",good:1},
+ {l:"Achievable sale price",r:"price",fmt:"usd",good:1,key:1},
+ {l:"Price as % of existing median",r:"pricePct",fmt:"pct1",good:1},
+ {l:"Buyer gap",r:"buyerGap",fmt:"usd",good:-1},
+ {l:"Owner's net monthly cost",r:"net",fmt:"usd",good:-1,key:1},
+ {l:"Net cost as % of owner income",r:"netPct",fmt:"pct1",good:-1},
+ {l:"Total development cost",r:"tdc",fmt:"usd",good:-1},
+ {l:"Required proceeds (TDC + margin)",r:"req",fmt:"usd",good:-1},
+ {l:"Subsidy needed per building",r:"subsidy",fmt:"usd",good:-1,key:1},
+ {l:"Subsidy needed per unit",r:"subsidyUnit",fmt:"usd",good:-1},
+ {l:"Developer gap",r:"devGap",fmt:"usd",good:-1},
+ {l:"Remaining gap after illustrative stack",r:"remain",fmt:"usd",good:-1,key:1}
+];
+function renderCmp(){
+  const t=document.getElementById("cmp");
+  t.innerHTML=`<thead><tr><th>Result</th>${CITIES.map(c=>`<th><span class="dot" style="background:var(${CITY_COLOR[c]})"></span> ${c}</th>`).join("")}</tr></thead><tbody>${CMP.map(m=>`<tr class="${m.key?"key":""}"><td>${m.l}</td>${CITIES.map(c=>{const v=CUR[c][m.r],b=BAS[c][m.r];const dt=deltaText(v-b,m.fmt);return `<td><span class="num">${F[m.fmt](v)}</span>${dt?`<span class="chip ${deltaClass(v-b,m.good)}">${dt}</span>`:""}</td>`;}).join("")}</tr>`).join("")}</tbody>`;
+}
+
+/* --- sweep --- */
+const OUTS=[{r:"remain",l:"Remaining gap after stack",good:-1},{r:"subsidy",l:"Subsidy needed per building",good:-1},{r:"subsidyUnit",l:"Subsidy per unit",good:-1},{r:"price",l:"Achievable sale price",good:1},{r:"net",l:"Owner's net monthly cost",good:-1},{r:"req",l:"Required proceeds",good:-1}];
+function buildSweepPickers(){
+  const si=document.getElementById("sweepIn"),so=document.getElementById("sweepOut");
+  si.innerHTML=CTRL.filter(c=>c.type==="range").map(c=>`<option value="${c.k}">${lbl(c)}</option>`).join("");
+  so.innerHTML=OUTS.map(o=>`<option value="${o.r}">${o.l}</option>`).join("");
+  si.value=lastKey; si.onchange=()=>{lastKey=si.value;renderSweep();}; so.onchange=renderSweep;
+}
+function syncSweepIn(){const si=document.getElementById("sweepIn");[...si.options].forEach(o=>o.textContent=lbl(CTRL_BY[o.value]));si.value=lastKey;}
+function renderSweep(){
+  const svg=document.getElementById("sweep");svg.innerHTML="";
+  const c=CTRL_BY[document.getElementById("sweepIn").value]; const out=document.getElementById("sweepOut").value; const oD=OUTS.find(o=>o.r===out);
+  const W=560,H=300,L=64,R=16,T=14,Bm=40; svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const n=41, xs=[...Array(n)].map((_,i)=>c.min+(c.max-c.min)*i/(n-1));
+  const series={};
+  CITIES.forEach(city=>{series[city]=xs.map(xv=>{const T2=clone(S); if(c.scope==="city"){CITIES.forEach(cc=>c.set(T2,cc,xv));} else c.set(T2,city,xv); if(c.ny&&c.toggle){ if(c.scope==="city") CITIES.forEach(cc=>c.toggle(T2,cc,true)); else c.toggle(T2,city,true);} return compute(T2,city)[out];});});
+  let all=Object.values(series).flat(); let ymin=Math.min(0,...all), ymax=Math.max(...all); if(ymax===ymin) ymax=ymin+1; ymax*=1.06;
+  const X=v=>L+(v-c.min)/(c.max-c.min)*(W-L-R), Y=v=>T+(1-(v-ymin)/(ymax-ymin))*(H-T-Bm);
+  const ticks=niceTicks(ymin,ymax,5);
+  ticks.forEach(tv=>{el("line",{x1:L,x2:W-R,y1:Y(tv),y2:Y(tv),stroke:"var(--rule-2)"},svg);const t=el("text",{x:L-6,y:Y(tv)+4,"text-anchor":"end","font-size":11,fill:"var(--ink-3)","font-family":"IBM Plex Mono, monospace"},svg);t.textContent=out==="net"?usd(tv):usdK(tv);});
+  [0,0.25,0.5,0.75,1].forEach(f=>{const xv=c.min+(c.max-c.min)*f;const t=el("text",{x:X(xv),y:H-Bm+16,"text-anchor":f===0?"start":f===1?"end":"middle","font-size":11,fill:"var(--ink-3)","font-family":"IBM Plex Mono, monospace"},svg);t.textContent=fmtCtl(c,xv);});
+  const xl=el("text",{x:L+(W-L-R)/2,y:H-6,"text-anchor":"middle","font-size":11.5,fill:"var(--ink-2)"},svg);xl.textContent=lbl(c);
+  // baseline value line (focus)
+  const bv=c.get(BASE,focus); if(bv>=c.min&&bv<=c.max){el("line",{x1:X(bv),x2:X(bv),y1:T,y2:H-Bm,stroke:"var(--ink-3)","stroke-dasharray":"3 3"},svg);const t=el("text",{x:X(bv)+4,y:T+10,"font-size":10.5,fill:"var(--ink-3)"},svg);t.textContent="baseline";}
+  CITIES.forEach(city=>{const pts=series[city].map((v,i)=>`${i?"L":"M"}${X(xs[i]).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+    el("path",{d:pts,fill:"none",stroke:`var(${CITY_COLOR[city]})`,"stroke-width":city===focus?2.6:1.6},svg);
+    const cv=c.get(S,city); const on=c.ny?(c.on(S,city)):true; const yv=on?CUR[city][out]:null;
+    if(on&&cv>=c.min&&cv<=c.max){el("circle",{cx:X(cv),cy:Y(CUR[city][out]),r:4.5,fill:`var(${CITY_COLOR[city]})`,stroke:"var(--sheet)","stroke-width":1.5},svg);}
+    const last=series[city][n-1];const lt=el("text",{x:W-R-2,y:Y(last)-6,"text-anchor":"end","font-size":10.5,fill:`var(${CITY_COLOR[city]})`,"font-weight":600},svg);lt.textContent=city;
+  });
+  if(ymin<0) el("line",{x1:L,x2:W-R,y1:Y(0),y2:Y(0),stroke:"var(--ink-3)"},svg);
+}
+function niceTicks(a,b,n){const span=b-a;const step0=span/n;const mag=Math.pow(10,Math.floor(Math.log10(step0)));const st=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=step0);const out=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)out.push(v);return out;}
+
+/* --- tornado: workbook section 10 scenarios --- */
+const SCEN=[
+ {l:"Hard cost 10% lower",f:T=>{scaleHard(T,0.9);}},
+ {l:"Hard cost 10% higher",f:T=>{scaleHard(T,1.1);}},
+ {l:"Developer margin deferred (0%)",f:T=>{T.shared.margin=0;}},
+ {l:"Developer margin 5%",f:T=>{T.shared.margin=0.05;}},
+ {l:"New building appraises $50K higher",f:T=>{const b=bucketOf(T.shared.units);CITIES.forEach(c=>T.cities[c].med[b]+=50000);}},
+ {l:"Owner at 80% AMI",f:T=>{T.shared.ownerAMI=0.8;}},
+ {l:"Mortgage rate 5.5%",f:T=>{T.shared.rate=0.055;}},
+ {l:"DOH award $300K",f:T=>{T.shared.doh=300000;}},
+ {l:"HDF cannot stack with DOH",f:T=>{T.shared.hdf=0;}},
+ {l:"No AHP award",f:T=>{T.shared.ahp=0;}},
+ {l:"No HTCC",f:T=>{T.shared.htcc=0;}},
+ {l:"Hard cost −10% and margin 5%",f:T=>{scaleHard(T,0.9);T.shared.margin=0.05;}}
+];
+function scaleHard(T,m){T.shared.factory=T.shared.factory.map(v=>v*m);T.shared.field=T.shared.field.map(v=>v*m);T.shared.transport=T.shared.transport.map(v=>v*m);T.shared.stick*=m;}
+function renderTornado(){
+  const svg=document.getElementById("tornado");svg.innerHTML="";
+  const rows=SCEN.map(s=>{const T=clone(S);s.f(T);const o={l:s.l};CITIES.forEach(c=>o[c]=compute(T,c).remain-CUR[c].remain);o.sort=o[focus];return o;}).sort((a,b)=>a.sort-b.sort);
+  const W=560,L=210,R=56,T=8,rowH=24,H=T+rows.length*rowH+26; svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const m=Math.max(1,...rows.flatMap(r=>CITIES.map(c=>Math.abs(r[c]))));
+  const X=v=>L+(W-L-R)/2+v/m*(W-L-R)/2;
+  el("line",{x1:X(0),x2:X(0),y1:T,y2:H-22,stroke:"var(--ink-3)"},svg);
+  [-m,-m/2,m/2,m].forEach(v=>{const t=el("text",{x:X(v),y:H-6,"text-anchor":"middle","font-size":10.5,fill:"var(--ink-3)","font-family":"IBM Plex Mono, monospace"},svg);t.textContent=(v>0?"+":"−")+usdK(Math.abs(v));});
+  rows.forEach((r,i)=>{const y=T+i*rowH;const t=el("text",{x:L-8,y:y+15,"text-anchor":"end","font-size":11.5,fill:"var(--ink)"},svg);t.textContent=r.l;
+    CITIES.forEach((c,j)=>{const v=r[c];const x0=Math.min(X(0),X(v)),w=Math.abs(X(v)-X(0));const rr=el("rect",{x:x0,y:y+3+j*6,width:Math.max(w,v===0?0:1),height:5,fill:`var(${CITY_COLOR[c]})`,opacity:c===focus?1:.55},svg);rr.appendChild(Object.assign(document.createElementNS(SVGNS,"title"),{textContent:`${c}: ${v<0?"−":"+"}${usd(Math.abs(v))}`}));});
+    const fv=r[focus];const vt=el("text",{x:fv<=0?W-R+4:W-R+4,y:y+15,"font-size":10.5,"font-family":"IBM Plex Mono, monospace","font-weight":600,fill:Math.abs(fv)<1?"var(--ink-3)":fv<0?"var(--good)":"var(--bad)"},svg);vt.textContent=Math.abs(fv)<1?"0":(fv<0?"−":"+")+usdK(Math.abs(fv));
+  });
+}
+
+/* --- not-yet table --- */
+function renderNY(){
+  const rows=CTRL.filter(c=>c.ny);
+  document.getElementById("nytable").innerHTML=`<thead><tr><th>Research input</th><th>Status</th><th>Enters the math at</th><th>Effect on ${focus} remaining gap if on</th></tr></thead><tbody>${rows.map(c=>{const T=clone(S);c.toggle(T,focus,true);const d=compute(T,focus).remain-CUR[focus].remain;const on=c.on(S,focus);
+    return `<tr><td style="text-align:left">${lbl(c)}<div class="note">${c.note}</div></td><td><span class="tag ${on?"ph":"ny"}">${on?"On · "+fmtCtl(c,c.get(S,focus)):"Off"}</span></td><td>${c.lands}</td><td>${on?'<span class="note">included</span>':`<span class="chip ${Math.abs(d)<1?"zero":(d<0?"good":"bad")}">${Math.abs(d)<1?"no change":(d<0?"−":"+")+usdK(Math.abs(d))}</span> <span class="note">at ${fmtCtl(c,c.get(S,focus))}</span>`}</td></tr>`;}).join("")}</tbody>`;
+}
+
+/* --- explain mode --- */
+const STEPS=[
+ {t:"Start with the household",nodes:["i_ami","i_hh","c_inc"],ctl:["ownerAMI","hhSize","ami50"],
+  x:R=>`We design for an owner at <b>${pct(S.shared.ownerAMI)}</b> of area median income with a household of <b>${S.shared.hhSize}</b>. In ${focus}, that household earns <b>${usd(R.income)}</b> a year. Everything the buyer can afford starts here.`},
+ {t:"The second unit pays part of the mortgage",nodes:["i_rentT","i_mkt","i_ua","i_vac","c_rentLim","c_rent","c_collect","c_lenderRent"],ctl:["rentAMI","mkt","vac","rentBR"],
+  x:R=>`The owner rents the other unit at an affordable rent: the lower of the ${pct(S.shared.rentAMI)} AMI limit (<b>${usd(R.rentNet)}</b>) and market rent (<b>${usd(R.market)}</b>). That gives <b>${usd(R.rent)}/mo</b>. A lender counts 75% of it, and the owner budgets for vacancy.`},
+ {t:"Two tests decide what the buyer can pay",nodes:["i_tests","i_mort","i_dp","i_opex","i_mill","c_opex","c_k","c_testA","c_testB"],ctl:["rate","dp","mill","ins"],
+  x:R=>`Test A is the lender's view (40% of income plus credited rent), and comes to <b>${usdK(R.testA)}</b>. Test B is the owner's own budget (30% of income plus rent collected), and comes to <b>${usdK(R.testB)}</b>. The lower one, <b>${usdK(R.capacity)}</b>, is buyer capacity. Taxes, insurance and the mortgage rate all push it down.`},
+ {t:"The appraisal caps the price",nodes:["i_med","n_apprUp","c_appr","o_price","o_buyerGap"],ctl:["med","apprUp"],
+  x:R=>`A buyer can't borrow above appraised value. We use the median sale of an existing ${BUCKET_LABEL[R.bucket]} building (<b>${usdK(R.appr)}</b>) as that cap. The achievable price is <b>${usdK(R.price)}</b>, set by ${R.priceBinding.toLowerCase()}. The <b>${usdK(R.buyerGap)}</b> buyer gap is where down payment help goes.`},
+ {t:"What it costs to build",nodes:["i_prog","c_gsf","i_mod","i_trans","c_hard","i_soft","c_tdc","i_margin","c_req"],ctl:["factory","field","soft","margin","system"],
+  x:R=>`A ${Math.round(R.gsf).toLocaleString()} gross sq ft ${S.shared.system.toLowerCase()} building costs <b>$${R.hcPSF.toFixed(0)}/sf</b> to build. With soft costs, contingency and financing, TDC is <b>${usdK(R.tdc)}</b>. With margin, the building has to bring in <b>${usdK(R.req)}</b>. Cost is the same in all three cities, but prices are not.`},
+ {t:"The gap, and who could fill it",nodes:["o_subsidy","o_devGap","i_stack","o_remain","o_net"],ctl:["doh","hdf","ahp","htcc"],
+  x:R=>`Required proceeds minus achievable price leaves <b>${usdK(R.subsidy)}</b> per building (${usdK(R.subsidyUnit)} per unit). Stacking Time To Own, DOH, HDF, AHP and an HTCC share leaves <b>${usdK(R.remain)}</b> still unfunded in ${focus}. Compare the cities below.`}
+];
+function renderStepper(){
+  const st=STEPS[step],R=CUR[focus];
+  document.getElementById("stepBtns").innerHTML=STEPS.map((s,i)=>`<button data-i="${i}" ${i===step?'aria-current="step"':""}>${i+1}. ${s.t}</button>`).join("");
+  document.querySelectorAll("#stepBtns button").forEach(b=>b.onclick=()=>{step=+b.dataset.i;applyStep();});
+  document.getElementById("stepEyebrow").textContent=`Step ${step+1} of ${STEPS.length} · ${focus}`;
+  document.getElementById("stepTitle").textContent=st.t;
+  document.getElementById("stepText").innerHTML=st.x(R);
+  document.getElementById("prevStep").disabled=step===0;
+  document.getElementById("nextStep").textContent=step===STEPS.length-1?"Start over":"Next step";
+}
+function applyStep(){
+  renderStepper();
+  if(mode!=="explain")return;
+  stepLock=STEPS[step].nodes; highlightSet(stepLock);
+  selNode=STEPS[step].nodes[STEPS[step].nodes.length-1]; renderInspector(); markSel();
+  // show only this step's controls
+  const keep=new Set(STEPS[step].ctl);
+  document.querySelectorAll(".ctl").forEach(w=>w.hidden=!keep.has(w.dataset.k));
+  document.querySelectorAll("details.grp").forEach(d=>{const any=[...d.querySelectorAll(".ctl")].some(w=>!w.hidden);d.hidden=!any;if(any)d.open=true;});
+  document.getElementById("railnote").textContent="Inputs for this step";
+}
+function setMode(m){
+  mode=m; try{localStorage.setItem("pge-mode",m);}catch(e){}
+  document.body.classList.toggle("explain",m==="explain");
+  document.getElementById("m-explain").setAttribute("aria-pressed",m==="explain");
+  document.getElementById("m-explore").setAttribute("aria-pressed",m==="explore");
+  document.getElementById("stepper").hidden=m!=="explain";
+  if(m==="explain"){applyStep();}
+  else{stepLock=null;untrace();document.querySelectorAll(".ctl").forEach(w=>w.hidden=false);document.querySelectorAll("details.grp").forEach(d=>d.hidden=false);document.getElementById("railnote").textContent="Every input in the workbook";}
+}
+
+/* --- city seg --- */
+function buildCitySeg(){
+  const seg=document.getElementById("citySeg");
+  seg.innerHTML=CITIES.map(c=>`<button data-c="${c}" aria-pressed="${c===focus}"><span class="dot" style="background:var(${CITY_COLOR[c]})"></span>${c}</button>`).join("");
+  seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{focus=b.dataset.c;try{localStorage.setItem("pge-city",focus);}catch(e){}seg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.c===focus));PREV=null;update(true);});
+}
+
+function update(noPulse){
+  recompute(); if(noPulse) PREV=null;
+  syncControls(); renderKPIs(); renderFlow(); renderInspector(); renderFacts(); renderStack(); renderCmp(); renderNY();
+  if(mode==="explore"){renderSweep();renderTornado();} else {renderStepper(); if(stepLock) highlightSet(stepLock);}
+}
+
+/* ===================== INIT ===================== */
+buildCitySeg(); buildControls(); buildFlow(); buildSweepPickers();
+document.getElementById("m-explain").onclick=()=>setMode("explain");
+document.getElementById("m-explore").onclick=()=>{setMode("explore");update(true);};
+document.getElementById("prevStep").onclick=()=>{if(step>0){step--;applyStep();}};
+document.getElementById("nextStep").onclick=()=>{step=(step+1)%STEPS.length;applyStep();};
+document.getElementById("pin").onclick=()=>{BASE=clone(S);const d=new Date();baseLabel="pinned "+d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});document.getElementById("basenote").textContent="Baseline: "+baseLabel;update(true);};
+document.getElementById("reset").onclick=()=>{S=clone(DEFAULTS);BASE=clone(DEFAULTS);document.getElementById("basenote").textContent="Baseline: workbook (Oct 8)";update(true);};
+update(true); setMode(mode); if(mode==="explore") update(true);
+</script>
+
+</body>
+</html>
