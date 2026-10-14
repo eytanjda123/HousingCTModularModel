@@ -99,7 +99,7 @@ details.grp>summary{list-style:none;cursor:pointer;padding:10px 14px;display:fle
 details.grp>summary::-webkit-details-marker{display:none}
 details.grp>summary::after{content:"+";font-family:var(--f-mono);color:var(--ink-3)}
 details.grp[open]>summary::after{content:"–"}
-.grp-body{display:flex;flex-direction:column;gap:14px;padding:2px 14px 14px}
+.grp-body{display:flex;flex-direction:column;gap:6px;padding:2px 14px 12px}
 .ctl{display:flex;flex-direction:column;gap:4px;border-radius:6px;padding:6px 8px;margin:0 -8px;transition:background .15s}
 .ctl.hot{background:var(--accent-soft)}
 .ctl-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
@@ -122,9 +122,15 @@ details.grp[open]>summary::after{content:"–"}
 .ctl-meta{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:.74rem;color:var(--ink-3)}
 .ctl-meta .scope{font-family:var(--f-mono);font-size:.68rem}
 .linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:.74rem;text-decoration:underline;text-underline-offset:2px}
-.why{font-size:.74rem;color:var(--ink-2);line-height:1.4}
-.why b{font-weight:600;color:var(--ink)}
-.rng{font-size:.72rem;color:var(--ink-3);line-height:1.4}
+.info{border:1px solid var(--rule);background:var(--sheet);color:var(--ink-2);border-radius:50%;width:18px;height:18px;padding:0;font-size:.7rem;font-weight:600;font-family:var(--f-mono);line-height:1;cursor:pointer;flex:none;margin-left:4px}
+.info:hover,.info[aria-expanded="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.ctl-top label{display:inline}
+#tip.wide{max-width:340px}
+#tip.pinned{pointer-events:auto}
+#tip a{color:var(--band)}
+#tip .ti-sec{display:block;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.18)}
+#tip .ti-h{display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin-bottom:1px}
+#tip ul{margin:2px 0 0;padding-left:16px}
 .switch{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;color:var(--ink-2)}
 .switch input{accent-color:var(--input-fg)}
 .note{font-size:.76rem;color:var(--ink-3);line-height:1.4}
@@ -340,7 +346,7 @@ table.left td,table.left th{text-align:left}
     <div class="rail-head">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>Inputs</h3><span class="note" id="railnote">Every input in the workbook</span></div>
       <div class="legend"><span class="tag src">Sourced</span><span class="tag ph">Placeholder</span><span class="tag ch">Team choice</span><span class="tag ny">Not yet modeled</span></div>
-      <div class="note">Yellow values are inputs, as in the workbook. Type any value in the box, even outside the slider. The blue band under each slider is the researched range, and the tick marks the workbook default. ↺ resets one input. <span class="mono">ALL</span> = every city, <span class="mono">CITY</span> = the focus city only.</div>
+      <div class="note">Yellow values are inputs. Type any value in the box, even outside the slider. The blue band is the researched range and the tick is the workbook default. Hover or click <b>i</b> for each input's default, source and program notes. ↺ resets one input. <span class="mono">ALL</span> = every city, <span class="mono">CITY</span> = the focus city only.</div>
     </div>
     <div id="controls"></div>
   </aside>
@@ -607,8 +613,8 @@ const SAF={"Hartford":[1140,1310,1640,1950,2160],"New Haven":[1630,1770,2120,264
 const SAFSRC={"Hartford":"safH","New Haven":"safN","Waterbury":"safW"};
 /* RANGES[k](city) -> {lo,hi,kind,src:[ids],note} */
 const RANGES={
- ownerAMI:()=>({lo:.6,hi:1.2,kind:"pol",src:["doh"],note:"DOH targets buyers at 80–120% AMI and considers 60–80% case by case. The workbook's 60% sits at the bottom."}),
- rentAMI:()=>({lo:.5,hi:.8,kind:"ch",src:["doh"],note:"DOH underwrites the rental unit at the 60% AMI rent tier. The 50–80% band around it is a team choice."}),
+ ownerAMI:()=>({lo:.3,hi:1.2,kind:"ch",src:[],note:"Team choice. The slider spans 30% to 120% AMI.",notes:[["If DOH funds are used","DOH targets buyers at 80–120% AMI and considers 60–80% case by case.","doh"],["CHFA Time To Own","Full $25,000 at or below 80% AMI; $18,750 at 80–100%; not available above 100%.","tto"],["FHLBank Equity Builder","For buyers at or below 80% AMI; Housing Our Workforce covers 80–120%.","fhlb"]]}),
+ rentAMI:()=>({lo:.3,hi:.8,kind:"ch",src:[],note:"Team choice. The slider spans 30% to 80% AMI; 0% means market rent.",notes:[["If DOH funds are used","DOH underwrites the rental unit at the 60% AMI rent tier.","doh"]]}),
  ami50:c=>({lo:DEFAULTS.cities[c].ami50,hi:DEFAULTS.cities[c].ami50,kind:"pub",src:["wb"],note:"HUD FY2026 limit. It's a published number, so there's no uncertainty to range over."}),
  mkt:c=>{const i=BR.indexOf(S.shared.rentBR),a=DEFAULTS.cities[c].mkt[i],b=SAF[c][i];return {lo:Math.min(a,b),hi:Math.max(a,b),kind:"src",src:["wb",SAFSRC[c]],note:"From the Redfin asking rent to HUD's FY2027 small-area FMR for one central ZIP. The FMR includes utilities, so it reads high against asking rent."};},
  med:c=>{const b=bucketOf(S.shared.units),v=DEFAULTS.cities[c].med[b];return {lo:v,hi:v,kind:"pub",src:["wb"],note:"Median of recorded CAMA sales, 2023–26. It's a measured value; we didn't find a second source to range against."};},
@@ -616,9 +622,9 @@ const RANGES={
  rate:()=>({lo:.0624,hi:.0672,kind:"src",src:["pmms","tto"],note:"From PMMS 6.49% minus CHFA's 0.25% targeted-tract discount, up to the year-ago 6.72%."}),
  term:()=>({lo:30,hi:30,kind:"ch",src:["wb"],note:"Standard 30-year term."}),
  mip:()=>({lo:.005,hi:.0055,kind:"src",src:["mip"],note:"0.50% at 10% or more down; 0.55% at 3.5% down."}),
- dp:()=>({lo:.035,hi:.05,kind:"pol",src:["fnma"],note:"FHA minimum 3.5%; conventional 2-unit minimum 5%."}),
- rentCredit:()=>({lo:.75,hi:.75,kind:"pol",src:["doh"],note:"DOH outline p. 9: qualify the buyer on 75% of future gross rent."}),
- lenderCap:()=>({lo:.31,hi:.469,kind:"pol",src:["fha"],note:"FHA housing ratio: 31% manual underwriting, up to 46.9% with automated approval."}),
+ dp:()=>({lo:.035,hi:.05,kind:"src",src:["fnma"],note:"The lowest down payments available for a 2-unit home.",notes:[["FHA loan","3.5% minimum.","fnma"],["Conventional loan","5% minimum for an owner-occupied 2-unit home.","fnma"]]}),
+ rentCredit:()=>({lo:.5,hi:1,kind:"ch",src:[],note:"75% of gross rent is the usual lender convention.",notes:[["If DOH funds are used","DOH qualifies the buyer on 75% of future gross rent (outline p. 9).","doh"]]}),
+ lenderCap:()=>({lo:.31,hi:.469,kind:"src",src:["fha"],note:"The span of lender practice for the housing-cost share of income.",notes:[["If the loan is FHA","Housing ratio of 31% with manual underwriting, up to 46.9% with automated approval.","fha"]]}),
  ownerCap:()=>({lo:.28,hi:.35,kind:"ch",src:[],note:"30% is HUD's cost-burden line; 28% is the conventional front-end guideline. The upper end is a team choice."}),
  ins:()=>({lo:1340,hi:1820,kind:"src",src:["nw"],note:"City average premium per policy ÷ 2 units. The sample policy insures a $500K dwelling, so these likely run high."}),
  util:()=>({lo:30,hi:80,kind:"prov",src:[],note:"No source yet. Get a common-area utility estimate from a property manager."}),
@@ -635,7 +641,7 @@ const RANGES={
  soft:()=>({lo:.15,hi:.30,kind:"prov",src:[],note:"No source yet. Common affordable-housing range."}),
  cont:()=>({lo:.05,hi:.10,kind:"prov",src:[],note:"No source yet. 5% is typical for new construction and 10% for higher-risk work."}),
  fin:()=>({lo:.03,hi:.08,kind:"prov",src:[],note:"No source yet. Depends on construction-loan rate and term."}),
- margin:()=>({lo:0,hi:.22,kind:"pol",src:["doh"],note:"0% if a nonprofit defers its fee; DOH caps profit at 22% of non-acquisition cost (p. 9)."}),
+ margin:()=>({lo:0,hi:.2,kind:"ch",src:[],note:"Team choice. 0% means a nonprofit defers its fee.",notes:[["If DOH funds are used","DOH caps profit at 22% of non-acquisition cost (outline p. 9).","doh"]]}),
  tto:()=>({lo:18750,hi:25000,kind:"pol",src:["tto"],note:"Up to $25,000 at or below 80% AMI; $18,750 at 80–100%."}),
  otherAssist:()=>({lo:0,hi:32099,kind:"pol",src:["fhlb"],note:"FHLBank Equity Builder: up to $32,099 at or below 80% AMI."}),
  doh:()=>({lo:150000,hi:300000,kind:"prov",src:["doh"],note:"DOH has no per-home cap and sizes awards to the gap. $230K is one precedent; this range is a team bracket around it."}),
@@ -649,7 +655,7 @@ const RANGES={
  vol:()=>({lo:0,hi:.15,kind:"prov",src:[],note:"No source yet. Ask vendors for quotes at 10, 25 and 50 buildings."}),
  apprUp:()=>({lo:0,hi:.2,kind:"prov",src:[],note:"No source yet. Look for comparable new-build appraisals."}),
  abate:()=>({lo:0,hi:.5,kind:"prov",src:[],note:"No source yet. Check each city's abatement ordinance."}),
- units:()=>({lo:2,hi:2,kind:"pol",src:["doh"],note:"DOH's initiative excludes structures of three or more units (p. 4)."}),
+ units:()=>({lo:2,hi:6,kind:"ch",src:[],note:"Team choice.",notes:[["If DOH funds are used","DOH's initiative excludes structures of three or more units (outline p. 4).","doh"]]}),
  hhSize:()=>({lo:1,hi:6,kind:"ch",src:[],note:""})
 };
 function rg(c,city){const f=RANGES[c.k];if(!f)return null;const r=f(city);if(!r.kind)r.kind="pub";return r;}
@@ -731,7 +737,7 @@ const CTRL=[
  {k:"rentBR",g:"scn",label:"Rental unit bedrooms",type:"select",opts:BR,conf:"ch",node:"i_rentT",...SH("rentBR"),why:"Team choice. Sets the rent limit, utility allowance, market rent and unit size."},
  {k:"ownerAMI",g:"scn",label:"Owner household income target",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_hh",...SH("ownerAMI"),why:"Team choice: serve a 60% AMI buyer."},
  {k:"hhSize",g:"scn",label:"Owner household size",type:"range",min:1,max:6,step:1,fmt:"num",conf:"ch",node:"i_hh",...SH("hhSize"),why:"A 4-person household, HUD's reference size."},
- {k:"rentAMI",g:"scn",label:"Rental unit rent target",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_rentT",...SH("rentAMI"),why:"Matches the DOH outline's 60% AMI rent tier. Set it to 0% to charge market rent."},
+ {k:"rentAMI",g:"scn",label:"Rental unit rent target",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_rentT",...SH("rentAMI"),why:"Team choice: rent the second unit at 60% AMI. Set it to 0% to charge market rent."},
  {k:"capMkt",g:"scn",label:"Cap the AMI rent at market rent",type:"check",conf:"ch",node:"i_rentT",...SH("capMkt"),why:"An owner can't charge more than the market will pay."},
  {k:"system",g:"scn",label:"Construction system",type:"select",opts:["Modular","Stick-built"],conf:"ch",node:"i_mod",...SH("system"),why:"The team's proposal is prefab modular."},
  {k:"ami50",g:"city",label:"HUD 50% income limit, 4-person",type:"range",step:50,fmt:"usd",conf:"src",node:"i_ami",...CT("ami50"),why:"HUD FY2026 Section 8 income limits. The model uses twice this as 100% AMI."},
@@ -742,7 +748,7 @@ const CTRL=[
  {k:"term",g:"fin",label:"Mortgage term (years)",type:"range",step:5,fmt:"num",conf:"ch",node:"i_mort",...SH("term"),why:"Standard 30-year mortgage."},
  {k:"mip",g:"fin",label:"FHA mortgage insurance (annual)",type:"range",step:0.0001,fmt:"pct2",conf:"ph",node:"i_mort",...SH("mip"),why:"FHA's 0.55% rate at 3.5% down. The workbook asks to verify it."},
  {k:"dp",g:"fin",label:"Down payment",type:"range",step:0.005,fmt:"pct1",conf:"src",node:"i_dp",...SH("dp"),why:"FHA minimum for a 2–4 unit owner-occupied purchase."},
- {k:"rentCredit",g:"fin",label:"Lender credit on rental income",type:"range",step:0.05,fmt:"pct",conf:"src",node:"i_tests",...SH("rentCredit"),why:"DOH outline p. 9: the buyer is qualified on 75% of future gross rent."},
+ {k:"rentCredit",g:"fin",label:"Lender credit on rental income",type:"range",step:0.05,fmt:"pct",conf:"src",node:"i_tests",...SH("rentCredit"),why:"The usual lender convention of counting 75% of gross rent. The DOH outline uses the same figure."},
  {k:"lenderCap",g:"fin",label:"Test A cap: lender, % of qualifying income",type:"range",step:0.005,fmt:"pct1",conf:"ch",node:"i_tests",...SH("lenderCap"),why:"Workbook assumption, inside FHA's 31%–46.9% band."},
  {k:"ownerCap",g:"fin",label:"Test B cap: owner, % of own income",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_tests",...SH("ownerCap"),why:"HUD's 30% cost-burden standard."},
  {k:"ins",g:"own",label:"Homeowner insurance ($/unit/yr)",type:"range",step:10,fmt:"usd",conf:"ph",node:"i_opex",...SH("ins"),why:"Workbook placeholder, with no source cited."},
@@ -760,7 +766,7 @@ const CTRL=[
  {k:"soft",g:"dev",label:"Soft costs (% of hard)",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_soft",...SH("soft"),why:"Design, permits, legal, insurance and marketing."},
  {k:"cont",g:"dev",label:"Contingency (% of hard + soft)",type:"range",step:0.005,fmt:"pct1",conf:"ch",node:"i_soft",...SH("cont"),why:"Workbook assumption."},
  {k:"fin",g:"dev",label:"Construction financing",type:"range",step:0.005,fmt:"pct1",conf:"ch",node:"i_soft",...SH("fin"),why:"Construction-loan interest and fees."},
- {k:"margin",g:"dev",label:"Developer margin (% of TDC)",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_margin",...SH("margin"),why:"Workbook assumption, well under DOH's 22% cap."},
+ {k:"margin",g:"dev",label:"Developer margin (% of TDC)",type:"range",step:0.01,fmt:"pct",conf:"ch",node:"i_margin",...SH("margin"),why:"Workbook assumption."},
  {k:"tto",g:"stack",label:"CHFA Time To Own, max per buyer",type:"range",step:250,fmt:"usd",conf:"src",node:"i_stack",...SH("tto"),why:"CHFA's maximum at or below 80% AMI. Applied to the buyer gap only."},
  {k:"otherAssist",g:"stack",label:"Other buyer assistance (e.g., Equity Builder)",type:"range",step:500,fmt:"usd",conf:"ph",node:"i_stack",...SH("otherAssist"),why:"Off by default. Raise it to test adding a second down payment program."},
  {k:"doh",g:"stack",label:"DOH Developer Subsidy, per home",type:"range",step:5000,fmt:"usd",conf:"ph",node:"i_stack",...SH("doh"),why:"A precedent from the redacted course budget, not a formula."},
@@ -1081,7 +1087,7 @@ function ctlEl(c){
   if(c.type==="check") inp=`<label class="switch"><input type="checkbox" id="${id}"> <span>On</span></label>`;
   const num=c.type==="range"?`<input class="numin" id="${id}-n" inputmode="decimal" aria-label="${esc(lbl(c))} value"><span class="unit">${unitOf(c)}</span>`:"";
   const sw=c.ny?`<label class="switch"><input type="checkbox" id="${id}-on"> Include in model</label>`:"";
-  w.innerHTML=`<div class="ctl-top"><label for="${c.type==="range"?id+"-n":id}" class="ctl-l"></label><span class="ctl-in">${num}<button class="rst" id="${id}-r" aria-label="Reset to workbook default">↺</button></span></div>${inp}${sw}<div class="ctl-meta"><span class="tag ${c.conf}">${CONF_LABEL[c.conf]}</span><span class="scope"></span><span class="ovslot"></span><span class="outtag"></span></div><div class="why"></div><div class="rng"></div>`;
+  w.innerHTML=`<div class="ctl-top"><span style="min-width:0"><label for="${c.type==="range"?id+"-n":id}" class="ctl-l"></label><button class="info" data-info="${c.k}" aria-label="About this input: default, source and range" aria-expanded="false">i</button></span><span class="ctl-in">${num}<button class="rst" id="${id}-r" aria-label="Reset to workbook default">↺</button></span></div>${inp}${sw}<div class="ctl-meta"><span class="tag ${c.conf}">${CONF_LABEL[c.conf]}</span><span class="scope"></span><span class="ovslot"></span><span class="outtag"></span></div>`;
   const input=w.querySelector("#"+CSS.escape(id));
   const afterSet=()=>{ if(c.type==="range"){lastKey=c.k;syncSweepIn();} update(); trace(c.node,"down"); clearTimeout(w._t); w._t=setTimeout(untrace,900); };
   const handler=()=>{ let v= c.type==="range"?parseFloat(input.value): c.type==="check"?input.checked: input.value; setV(c,S,focus,v); afterSet(); };
@@ -1101,6 +1107,16 @@ function rangeLine(c,city){
   const span=r.hi-r.lo<1e-12?`${fmtCtl(c,r.lo)}`:`${fmtCtl(c,r.lo)} – ${fmtCtl(c,r.hi)}`;
   return `<b>${KIND[r.kind]}:</b> ${span}. ${esc(r.note)}${srcs?" "+srcs+".":""}`;
 }
+function infoHTML(c,city){
+  const d=defV(c,city), r=rg(c,city);
+  let h=`<b>${esc(lbl(c))}</b><span class="ti-h">Default: ${esc(fmtCtl(c,d))}</span>${esc(c.why||"")}`;
+  if(r){const src=(r.src||[]).filter(s=>SRC[s]).map(s=>SRC[s].u?`<a href="${SRC[s].u}" target="_blank" rel="noopener">${esc(SRC[s].t.split(":")[0])}</a>`:esc(SRC[s].t.split(":")[0])).join("; ");
+    const span=r.hi-r.lo<1e-12?fmtCtl(c,r.lo):`${fmtCtl(c,r.lo)} – ${fmtCtl(c,r.hi)}`;
+    h+=`<span class="ti-sec"><span class="ti-h">${esc(KIND[r.kind])}: ${esc(span)}</span>${esc(r.note)}${src?` Source: ${src}.`:""}</span>`;
+    if(r.notes&&r.notes.length) h+=`<span class="ti-sec"><span class="ti-h">Program notes (for reference, not limits)</span><ul>${r.notes.map(([p,t,s])=>`<li><b style="display:inline;font-size:inherit">${esc(p)}:</b> ${esc(t)}${s&&SRC[s]&&SRC[s].u?` <a href="${SRC[s].u}" target="_blank" rel="noopener">source</a>`:""}</li>`).join("")}</ul></span>`;}
+  if(c.ny) h+=`<span class="ti-sec">Enters the math at: ${esc(c.lands)}.</span>`;
+  return h;
+}
 function syncControls(){
   document.querySelectorAll("#controls .ctl").forEach(w=>{const c=CTRL_BY[w.dataset.k];const id="ctl-"+c.k;const input=w.querySelector("#"+CSS.escape(id));
     const v=getV(c,S,focus), d=defV(c,focus), ov=isOv(S,c,focus);
@@ -1114,9 +1130,7 @@ function syncControls(){
       const b1=os.querySelector("[data-ovon]"),b2=os.querySelector("[data-ovoff]");
       if(b1)b1.onclick=()=>{S.ov[focus][c.k]=c.get(S,focus);update();};
       if(b2)b2.onclick=()=>{delete S.ov[focus][c.k];update();};} else os.innerHTML="";
-    const whyTxt=`<b>Default ${esc(fmtCtl(c,d))}</b> · ${esc(c.why||"")}`;
-    w.querySelector(".why").innerHTML=whyTxt;
-    w.querySelector(".rng").innerHTML=rangeLine(c,focus);
+
     const r=rg(c,focus); const out=c.type==="range"&&r&&!c.discrete&&(v<r.lo-1e-9||v>r.hi+1e-9);
     w.querySelector(".outtag").innerHTML=out?`<span class="tag warn">Outside researched range</span>`:"";
     if(c.type==="range"){
@@ -1226,9 +1240,9 @@ function renderPortfolio(){
   if(htccUsed>S.shared.htcc+1) flags.push(["warn","HTCC cap",`The portfolio draws ${usdK(htccUsed)} of HTCC, more than one ${usdK(S.shared.htcc)} award. CHFA's 2026 round caps awards at $500,000 per applicant.`]);
   flags.push([ahpUsed>1e6+1?"warn":"ok","AHP application cap",`The portfolio uses ${usdK(ahpUsed)} of AHP. FHLBank Boston caps one application at $1,000,000${ahpUsed>1e6+1?", so this needs more than one application":""}.`]);
   flags.push([hdfHomes>10?"warn":"ok","HDF grant size",`${hdfHomes} buildings draw HDF / C4C funds. One grant covers up to 10 homes${hdfHomes>10?", so this needs more than one grant":""}.`]);
-  if(S.shared.units>2) flags.push(["warn","DOH eligibility","DOH's initiative excludes structures of three or more units (outline p. 4)."]);
-  if(S.shared.ownerAMI<0.8) flags.push(["warn","DOH buyer income",`The owner is at ${pct(S.shared.ownerAMI)} AMI. DOH targets 80–120% and considers 60–80% case by case, based on developer experience.`]);
-  document.getElementById("pflags").innerHTML=flags.map(([k,t,m])=>`<div class="flag ${k==="warn"?"warn":""}"><span class="tag ${k==="warn"?"warn":"src"}">${k==="warn"?"Check":"OK"}</span><span><b>${t}.</b> ${m}</span></div>`).join("");
+  if(S.shared.units>2) flags.push(["note","If DOH funds are used","DOH's initiative excludes structures of three or more units (outline p. 4)."]);
+  if(S.shared.ownerAMI<0.8) flags.push(["note","If DOH funds are used",`The owner is at ${pct(S.shared.ownerAMI)} AMI. DOH targets 80–120% and considers 60–80% case by case, based on developer experience.`]);
+  document.getElementById("pflags").innerHTML=flags.map(([k,t,m])=>`<div class="flag ${k==="warn"?"warn":""}"><span class="tag ${k==="warn"?"warn":k==="note"?"ch":"src"}">${k==="warn"?"Check":k==="note"?"Note":"OK"}</span><span><b>${t}.</b> ${m}</span></div>`).join("");
 }
 
 /* --- sweep --- */
@@ -1385,9 +1399,18 @@ function buildCitySeg(){
 function renderGloss(){document.getElementById("gloss").innerHTML=Object.values(GLOSS).sort((a,b)=>a[0].localeCompare(b[0])).map(([t,d])=>`<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
   document.getElementById("srcList").innerHTML=Object.values(SRC).map(s=>`<li>${s.u?`<a href="${s.u}" target="_blank" rel="noopener">${esc(s.t)}</a>`:esc(s.t)}</li>`).join("");}
 const tip=document.getElementById("tip");
-function showTip(e){const t=e.target.closest&&e.target.closest("[data-term]");if(!t||!GLOSS[t.dataset.term])return;const [h,d]=GLOSS[t.dataset.term];tip.innerHTML=`<b>${esc(h)}</b>${esc(d)}`;tip.hidden=false;const r=t.getBoundingClientRect();const tw=Math.min(300,window.innerWidth-24);let x=Math.min(Math.max(12,r.left),window.innerWidth-tw-12);let y=r.bottom+8;if(y+120>window.innerHeight)y=r.top-8-tip.offsetHeight;tip.style.left=x+"px";tip.style.top=y+"px";}
-function hideTip(e){const t=e.target.closest&&e.target.closest("[data-term]");if(t)tip.hidden=true;}
-document.addEventListener("mouseover",showTip);document.addEventListener("mouseout",hideTip);document.addEventListener("focusin",showTip);document.addEventListener("focusout",hideTip);
+let tipPinned=null;
+function placeTip(t){tip.hidden=false;const r=t.getBoundingClientRect();const tw=Math.min(tip.classList.contains("wide")?340:300,window.innerWidth-24);let x=Math.min(Math.max(12,r.left-8),window.innerWidth-tw-12);let y=r.bottom+8;if(y+tip.offsetHeight>window.innerHeight-8)y=Math.max(8,r.top-8-tip.offsetHeight);tip.style.left=x+"px";tip.style.top=y+"px";}
+function tipFor(t){if(t.dataset.info){const c=CTRL_BY[t.dataset.info];tip.classList.add("wide");tip.innerHTML=infoHTML(c,focus);return true;}if(t.dataset.term&&GLOSS[t.dataset.term]){tip.classList.remove("wide");const [h,d]=GLOSS[t.dataset.term];tip.innerHTML=`<b>${esc(h)}</b>${esc(d)}`;return true;}return false;}
+function showTip(e){if(tipPinned)return;const t=e.target.closest&&e.target.closest("[data-term],[data-info]");if(!t||!tipFor(t))return;placeTip(t);}
+function hideTip(e){if(tipPinned)return;const t=e.target.closest&&e.target.closest("[data-term],[data-info]");if(t)tip.hidden=true;}
+function unpin(){if(tipPinned){tipPinned.setAttribute("aria-expanded","false");tipPinned=null;tip.classList.remove("pinned");tip.hidden=true;}}
+document.addEventListener("mouseover",showTip);document.addEventListener("mouseout",hideTip);document.addEventListener("focusin",showTip);document.addEventListener("focusout",e=>{if(!tipPinned)hideTip(e);});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-info]");
+  if(b){e.preventDefault();if(tipPinned===b){unpin();return;}unpin();tipFor(b);tipPinned=b;b.setAttribute("aria-expanded","true");tip.classList.add("pinned");placeTip(b);return;}
+  if(tipPinned&&!tip.contains(e.target))unpin();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")unpin();});
+window.addEventListener("scroll",()=>{if(tipPinned)unpin();},true);
 
 /* ===================== SHARE LINKS ===================== */
 function diffState(a,b,path,out){
