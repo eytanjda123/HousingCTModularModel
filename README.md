@@ -11,3 +11,4 @@ An interactive version of `Housing_CT_Prefab_City_Models_and_Charts.xlsx`, the H
 - Research slots hold inputs not yet in the workbook (land, site prep, fee waiver, volume discount, appraisal premium, tax abatement). They start switched off.
 
 With every input at its default, the numbers match the workbook's Compare tab. Funding amounts are caps and precedents, not awards.
+
