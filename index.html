@@ -102,6 +102,10 @@ details.grp[open]>summary::after{content:"–"}
 .grp-body{display:flex;flex-direction:column;gap:6px;padding:2px 14px 12px}
 .ctl{display:flex;flex-direction:column;gap:4px;border-radius:6px;padding:6px 8px;margin:0 -8px;transition:background .15s}
 .ctl.hot{background:var(--accent-soft)}
+.ctl{cursor:pointer}
+.ctl.locked{box-shadow:inset 3px 0 0 var(--accent)}
+#flow .node.locked rect.box{stroke:var(--accent);stroke-width:2.6}
+#lockNote{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .ctl-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .ctl-top label{font-weight:500;font-size:.86rem;min-width:0}
 .ctl-in{display:flex;align-items:center;gap:4px;flex:none}
@@ -387,6 +391,7 @@ table.left td,table.left th{text-align:left}
         <div class="seg" role="group" aria-label="Impact measure" id="impMode"><button data-m="pct" aria-pressed="true">10% change</button><button data-m="range" aria-pressed="false">Researched range</button></div>
       </div>
       <p class="impnote" id="impNote"></p>
+      <p class="impnote" id="lockNote" hidden></p>
       <div class="flowscroll"><svg id="flow" role="img" aria-label="Diagram of model inputs flowing through calculations to outputs"></svg></div>
       <div class="flowkey">
         <span><span class="sw" style="background:var(--input-bg);border-color:transparent"></span>Input</span>
@@ -910,15 +915,25 @@ function buildFlow(){
     if(CONF_ABBR[n.conf]){const c=el("text",{x:p.w-8,y:n.col===0?15:17,class:"conf","text-anchor":"end",fill:n.conf==="src"?"var(--tag-src)":"var(--tag-ph)"},g);c.textContent=CONF_ABBR[n.conf];}
     if(n.term&&GLOSS[n.term]) stitle(g,GLOSS[n.term][0]+": "+GLOSS[n.term][1]);
     NODE_EL[n.id]={g,v,d,ib};
-    g.addEventListener("mouseenter",()=>trace(n.id,"both"));
+    g.addEventListener("mouseenter",()=>{if(!lock)trace(n.id,"both");});
     g.addEventListener("mouseleave",()=>untrace());
-    g.addEventListener("focus",()=>trace(n.id,"both"));
+    g.addEventListener("focus",()=>{if(!lock)trace(n.id,"both");});
     g.addEventListener("blur",()=>untrace());
-    g.addEventListener("click",()=>{selNode=n.id;renderInspector();markSel();});
-    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selNode=n.id;renderInspector();markSel();}});
+    g.addEventListener("click",e=>{e.stopPropagation();selNode=n.id;renderInspector();markSel();toggleLock(n.id,"both",n.label);});
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selNode=n.id;renderInspector();markSel();toggleLock(n.id,"both",n.label);}});
   });
+  svg.addEventListener("click",e=>{if(!e.target.closest(".node"))setLock(null);});
   markSel();
 }
+let lock=null;
+function setLock(l){lock=l;const note=document.getElementById("lockNote");
+  if(lock){trace(lock.id,lock.dir);note.innerHTML=`<span class="tag ov">Locked</span> Showing everything connected to <b>${esc(lock.label)}</b>. Click empty space on the map, or press Esc, to unlock.`;note.hidden=false;}
+  else{note.hidden=true;untrace();}
+  document.querySelectorAll("#flow .node").forEach(g=>g.classList.remove("locked"));
+  if(lock&&NODE_EL[lock.id])NODE_EL[lock.id].g.classList.add("locked");
+  document.querySelectorAll("#controls .ctl.locked").forEach(w=>w.classList.remove("locked"));
+  if(lock&&lock.ctl){const w=document.querySelector(`#controls .ctl[data-k="${lock.ctl}"]`);if(w)w.classList.add("locked");}}
+function toggleLock(id,dir,label,ctl){if(lock&&lock.id===id&&lock.ctl===ctl){setLock(null);return;}setLock({id,dir,label,ctl});}
 function markSel(){Object.entries(NODE_EL).forEach(([id,o])=>o.g.classList.toggle("sel",id===selNode));}
 let stepLock=null;
 function trace(id,dir){
@@ -930,6 +945,7 @@ function trace(id,dir){
   document.querySelectorAll("#controls .ctl").forEach(c=>{const ck=CTRL_BY[c.dataset.k];c.classList.toggle("hot",!!ck&&set.has(ck.node));});
 }
 function untrace(){
+  if(lock){trace(lock.id,lock.dir);return;}
   if(stepLock){highlightSet(stepLock);return;}
   const svg=document.getElementById("flow");svg.classList.remove("tracing");
   Object.values(NODE_EL).forEach(o=>o.g.classList.remove("on"));EDGE_EL.forEach(e=>e.el.classList.remove("on"));
@@ -1089,16 +1105,17 @@ function ctlEl(c){
   const sw=c.ny?`<label class="switch"><input type="checkbox" id="${id}-on"> Include in model</label>`:"";
   w.innerHTML=`<div class="ctl-top"><span style="min-width:0"><label for="${c.type==="range"?id+"-n":id}" class="ctl-l"></label><button class="info" data-info="${c.k}" aria-label="About this input: default, source and range" aria-expanded="false">i</button></span><span class="ctl-in">${num}<button class="rst" id="${id}-r" aria-label="Reset to workbook default">↺</button></span></div>${inp}${sw}<div class="ctl-meta"><span class="tag ${c.conf}">${CONF_LABEL[c.conf]}</span><span class="scope"></span><span class="ovslot"></span><span class="outtag"></span></div>`;
   const input=w.querySelector("#"+CSS.escape(id));
-  const afterSet=()=>{ if(c.type==="range"){lastKey=c.k;syncSweepIn();} update(); trace(c.node,"down"); clearTimeout(w._t); w._t=setTimeout(untrace,900); };
+  const afterSet=()=>{ if(c.type==="range"){lastKey=c.k;syncSweepIn();} update(); if(!lock){trace(c.node,"down"); clearTimeout(w._t); w._t=setTimeout(untrace,900);} };
   const handler=()=>{ let v= c.type==="range"?parseFloat(input.value): c.type==="check"?input.checked: input.value; setV(c,S,focus,v); afterSet(); };
   input.addEventListener("input",handler); if(c.type!=="range") input.addEventListener("change",handler);
   if(c.type==="range"){const ni=w.querySelector("#"+CSS.escape(id+"-n"));
     const commit=()=>{const v=fromDisp(c,ni.value);if(v===null){syncControls();return;}setV(c,S,focus,v);afterSet();};
     ni.addEventListener("change",commit); ni.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit();ni.blur();}});}
   w.querySelector("#"+CSS.escape(id+"-r")).addEventListener("click",()=>{setV(c,S,focus,clone(defV(c,focus)));if(c.ny)c.toggle(S,focus,c.on(DEFAULTS,focus));afterSet();});
-  input.addEventListener("focus",()=>trace(c.node,"down")); input.addEventListener("blur",untrace);
-  w.addEventListener("mouseenter",()=>trace(c.node,"down")); w.addEventListener("mouseleave",untrace);
-  if(c.ny){const t=w.querySelector("#"+CSS.escape(id+"-on"));t.addEventListener("change",()=>{c.toggle(S,focus,t.checked);update();trace(c.node,"down");setTimeout(untrace,900);});}
+  input.addEventListener("focus",()=>{if(!lock)trace(c.node,"down");}); input.addEventListener("blur",untrace);
+  w.addEventListener("mouseenter",()=>{if(!lock)trace(c.node,"down");}); w.addEventListener("mouseleave",untrace);
+  w.addEventListener("click",e=>{if(e.target.closest("input,select,button,a,label"))return;toggleLock(c.node,"down",lbl(c),c.k);});
+  if(c.ny){const t=w.querySelector("#"+CSS.escape(id+"-on"));t.addEventListener("change",()=>{c.toggle(S,focus,t.checked);update();if(!lock){trace(c.node,"down");setTimeout(untrace,900);}});}
   return w;
 }
 function rangeLine(c,city){
@@ -1436,7 +1453,7 @@ document.addEventListener("mouseover",showTip);document.addEventListener("mouseo
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-info]");
   if(b){e.preventDefault();if(tipPinned===b){unpin();return;}unpin();tipFor(b);tipPinned=b;b.setAttribute("aria-expanded","true");tip.classList.add("pinned");placeTip(b);return;}
   if(tipPinned&&!tip.contains(e.target))unpin();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")unpin();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){unpin();if(lock)setLock(null);}});
 window.addEventListener("scroll",()=>{if(tipPinned)unpin();},true);
 
 /* ===================== SHARE LINKS ===================== */
