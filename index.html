@@ -1346,15 +1346,42 @@ function applyStep(){
   document.getElementById("railnote").textContent="Inputs for this step";
 }
 /* Present: only this step's boxes */
+const PZ_LAST=STEPS.length; // final "full budget" screen
+function pzNav(){
+  document.getElementById("pzDots").innerHTML=[...STEPS.map(s=>s.t),"Full budget"].map((t,i)=>`<button data-i="${i}" aria-label="${i<STEPS.length?"Step "+(i+1)+": ":""}${esc(t)}" ${i===pzStep?'aria-current="step"':""}></button>`).join("");
+  document.querySelectorAll("#pzDots button").forEach(b=>b.onclick=()=>{pzStep=+b.dataset.i;renderPresent();});
+  document.getElementById("pzPrev").disabled=pzStep===0;
+  document.getElementById("pzNext").textContent=pzStep===PZ_LAST-1?"See the full budget":pzStep===PZ_LAST?"Start over":"Next";
+}
+function renderSummary(){
+  const R=CUR[focus], B=BAS[focus], s=S.shared;
+  const funded=R.sAssist+R.sDoh+R.sHdf+R.sAhp+R.sHtcc;
+  document.getElementById("pzEyebrow").textContent=`Full budget · ${focus}`;
+  document.getElementById("pzTitle").textContent="The whole budget, with every decision applied";
+  document.getElementById("pzText").innerHTML=`One ${s.units}-unit ${s.system.toLowerCase()} building in ${focus} costs <b>${usdK(R.tdc)}</b> to build and has to bring in <b>${usdK(R.req)}</b>. The buyer pays <b>${usdK(R.price)}</b> and subsidies cover <b>${usdK(funded)}</b>. ${R.remain>0.5?`That leaves <b>${usdK(R.remain)}</b> unfunded.`:`The budget closes with nothing left unfunded.`}`;
+  const L=changeList(); const box=document.getElementById("pzCtls"); box.dataset.step="summary";
+  box.innerHTML=`<div><span class="eyebrow">Decisions on top of the workbook (${L.length})</span>${L.length?`<ul style="margin:6px 0 0;padding-left:18px;font-size:.95rem;line-height:1.5">${L.slice(0,9).map(x=>`<li>${esc(x.txt)}</li>`).join("")}${L.length>9?`<li>…and ${L.length-9} more. Use Export to see the full list.</li>`:""}</ul>`:`<p class="note" style="font-size:.95rem;margin-top:4px">None yet. Every input is at the workbook value.</p>`}</div>`;
+  const uses=[["Hard cost",R.hard,.95],["Soft costs",R.softC,.75],["Contingency",R.contC,.6],["Construction financing",R.finC,.48],["Developer margin",R.marginC,.36],["Land / acquisition",R.land,.26]].filter(u=>u[1]>0.5);
+  const srcs=[["Buyer mortgage",R.price*(1-s.dp),"--s-buyer",1],["Buyer down payment",R.price*s.dp,"--s-buyer",.65],["Buyer assistance",R.sAssist,"--s-assist",1],["DOH",R.sDoh,"--s-doh",1],["HDF / C4C",R.sHdf,"--s-hdf",1],["FHLBank AHP",R.sAhp,"--s-ahp",1],["HTCC share",R.sHtcc,"--s-htcc",1],["Remaining gap",R.remain,"--s-gap",1]].filter(x=>x[1]>0.5);
+  const svg=document.getElementById("pzsvg");svg.innerHTML="";const W=700,H=460,T=34,Bt=20,cw=130,ux=200,sx=370;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const tot=Math.max(R.req,1),Y=v=>(H-T-Bt)*v/tot;
+  el("text",{x:ux+cw/2,y:20,"text-anchor":"middle",class:"pl","font-weight":"600"},svg).textContent="Uses · "+usdK(R.req);
+  el("text",{x:sx+cw/2,y:20,"text-anchor":"middle",class:"pl","font-weight":"600"},svg).textContent="Sources · "+usdK(R.req);
+  let y=T; uses.forEach(([l,v,o])=>{const h=Y(v);stitle(el("rect",{x:ux,y,width:cw,height:Math.max(h,1),fill:"var(--ink-3)","fill-opacity":o,stroke:"var(--sheet)","stroke-width":1},svg),`${l}: ${usd(v)}`);
+    if(h>=16){el("text",{x:ux-10,y:y+h/2+5,"text-anchor":"end",class:"pl"},svg).textContent=l;el("text",{x:ux+cw-8,y:y+h/2+5,"text-anchor":"end","font-family":"IBM Plex Mono, monospace","font-size":13,"font-weight":600,fill:o<.65?"var(--ink)":"var(--sheet)"},svg).textContent=usdK(v);}y+=h;});
+  y=T; srcs.forEach(([l,v,c,o])=>{const h=Y(v);stitle(el("rect",{x:sx,y,width:cw,height:Math.max(h,1),fill:`var(${c})`,"fill-opacity":o,stroke:"var(--sheet)","stroke-width":1},svg),`${l}: ${usd(v)}`);
+    if(h>=16){el("text",{x:sx+cw+10,y:y+h/2+5,class:"pl",fill:l==="Remaining gap"?"var(--bad)":undefined},svg).textContent=l;el("text",{x:sx+8,y:y+h/2+5,"font-family":"IBM Plex Mono, monospace","font-size":13,"font-weight":600,fill:"var(--sheet)"},svg).textContent=usdK(v);}y+=h;});
+  document.getElementById("pzRes").innerHTML=CITIES.map(c=>`<div><span class="eyebrow"><span class="dot" style="background:var(${CITY_COLOR[c]})"></span> Remaining gap · ${c}</span><span class="v">${usdK(CUR[c].remain)}</span>${chip(CUR[c].remain-BAS[c].remain,"usd",-1)}<span class="note">Subsidy needed ${usdK(CUR[c].subsidy)} · buyer pays ${usdK(CUR[c].price)}</span></div>`).join("");
+  document.querySelector(".pz-legend").textContent="Both columns add up to required proceeds. Hover a block for its exact amount. Small blocks are listed in Export.";
+}
 function renderPresent(){
+  pzNav();
+  if(pzStep===PZ_LAST){renderSummary();return;}
+  document.querySelector(".pz-legend").textContent="Yellow boxes are inputs and outlined boxes are results. Dashed boxes were worked out in an earlier step.";
   const st=STEPS[pzStep], R=CUR[focus], B=BAS[focus];
   document.getElementById("pzEyebrow").textContent=`Step ${pzStep+1} of ${STEPS.length} · ${focus}`;
   document.getElementById("pzTitle").textContent=st.t;
   document.getElementById("pzText").innerHTML=st.x(R);
-  document.getElementById("pzDots").innerHTML=STEPS.map((s,i)=>`<button data-i="${i}" aria-label="Step ${i+1}: ${esc(s.t)}" ${i===pzStep?'aria-current="step"':""}></button>`).join("");
-  document.querySelectorAll("#pzDots button").forEach(b=>b.onclick=()=>{pzStep=+b.dataset.i;renderPresent();});
-  document.getElementById("pzPrev").disabled=pzStep===0;
-  document.getElementById("pzNext").textContent=pzStep===STEPS.length-1?"Start over":"Next";
   const box=document.getElementById("pzCtls");
   if(box.dataset.step!==String(pzStep)){box.dataset.step=pzStep;box.innerHTML=st.ctl.map(k=>{const c=CTRL_BY[k];return `<div class="pzc" data-k="${k}"><div class="pzc-top"><label for="pz-${k}">${esc(lbl(c))}</label><span></span></div>${c.type==="range"?`<input type="range" id="pz-${k}">`:`<select id="pz-${k}">${c.opts.map(o=>`<option>${o}</option>`).join("")}</select>`}</div>`;}).join("");
     box.querySelectorAll(".pzc").forEach(w=>{const c=CTRL_BY[w.dataset.k];const i=w.querySelector("input,select");i.addEventListener("input",()=>{setV(c,S,focus,c.type==="range"?parseFloat(i.value):i.value);update();});});}
@@ -1537,8 +1564,8 @@ document.querySelectorAll("#impMode button").forEach(b=>b.onclick=()=>{impMode=b
 document.getElementById("prevStep").onclick=()=>{if(step>0){step--;applyStep();}};
 document.getElementById("nextStep").onclick=()=>{step=(step+1)%STEPS.length;applyStep();};
 document.getElementById("pzPrev").onclick=()=>{if(pzStep>0){pzStep--;renderPresent();}};
-document.getElementById("pzNext").onclick=()=>{pzStep=(pzStep+1)%STEPS.length;renderPresent();};
-document.addEventListener("keydown",e=>{if(mode!=="present"||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key==="ArrowRight"){pzStep=Math.min(STEPS.length-1,pzStep+1);renderPresent();}if(e.key==="ArrowLeft"){pzStep=Math.max(0,pzStep-1);renderPresent();}});
+document.getElementById("pzNext").onclick=()=>{pzStep=(pzStep+1)%(PZ_LAST+1);renderPresent();};
+document.addEventListener("keydown",e=>{if(mode!=="present"||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key==="ArrowRight"){pzStep=Math.min(PZ_LAST,pzStep+1);renderPresent();}if(e.key==="ArrowLeft"){pzStep=Math.max(0,pzStep-1);renderPresent();}});
 document.getElementById("pin").onclick=()=>{BASE=clone(S);const d=new Date();baseLabel="pinned "+d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});document.getElementById("basenote").textContent="Baseline: "+baseLabel;update(true);};
 document.getElementById("reset").onclick=()=>{S=clone(DEFAULTS);BASE=clone(DEFAULTS);document.getElementById("basenote").textContent="Baseline: workbook (Oct 8)";update(true);};
 function openDlg(id){const d=document.getElementById(id);d.hidden=false;const f=d.querySelector("button,input,textarea");if(f)f.focus();}
